@@ -1,0 +1,559 @@
+# Algo Trader Project Context & Requirements
+
+## Project Overview
+
+I am building a **production-quality personal algorithmic trading platform** primarily for learning and portfolio purposes. The goal is not just to create an algo trading application, but to build a software system using real-world software engineering practices similar to those used in fintech companies.
+
+The application will eventually connect to my existing Zerodha trading account using Kite Connect APIs and allow both paper trading and live intraday algorithmic trading.
+
+The project should be designed as if it will eventually be used in production.
+
+---
+
+# Primary Objectives
+
+The application should eventually support:
+
+* User authentication
+* Live market data streaming
+* Technical indicator calculation
+* Multiple trading strategies
+* Paper trading
+* Live trading through Zerodha
+* Risk management
+* Trade journal
+* Performance analytics
+* Mobile dashboard
+* Backtesting engine
+
+The focus is equally on learning software architecture and cloud deployment, not just trading.
+
+---
+
+# Technology Stack
+
+## Backend
+
+* Java 21
+* Spring Boot 3
+* Spring Security
+* Spring Data JPA
+* Spring Validation
+* Spring Scheduler
+* Spring WebSocket
+* Spring Actuator
+* Maven
+
+## Frontend
+
+Flutter
+
+Packages:
+
+* dio
+* provider
+* flutter_secure_storage
+* web_socket_channel
+
+## Database
+
+PostgreSQL
+
+Schema managed using Flyway.
+
+## Cache
+
+Redis
+
+## Broker
+
+Zerodha Kite Connect
+
+* Authentication
+* REST APIs
+* WebSocket APIs
+
+## Infrastructure
+
+Docker
+
+Docker Compose
+
+AWS EC2
+
+Nginx
+
+GitHub Actions
+
+Future AWS services may include:
+
+* RDS
+* ElastiCache
+* CloudWatch
+* Route53
+* ACM
+* Secrets Manager
+
+---
+
+# Repository Structure
+
+Use a **single GitHub repository (monorepo).**
+
+```text
+algo-trader/
+
+backend/
+
+frontend/
+
+infrastructure/
+
+docs/
+
+scripts/
+
+docker-compose.yml
+
+README.md
+
+AGENTS.md
+```
+
+The backend and frontend should remain in one repository.
+
+Deployment target does **not** determine repository structure.
+
+---
+
+# Development Philosophy
+
+The application should resemble a production system.
+
+Code should follow:
+
+* SOLID Principles
+* Clean Architecture where appropriate
+* Thin Controllers
+* Business Logic inside Services
+* DTOs
+* Repository Pattern
+* Constructor Injection
+* Global Exception Handling
+* Structured Logging
+* Validation
+* Flyway Migrations
+
+Avoid overengineering.
+
+Do not introduce unnecessary frameworks or abstractions.
+
+---
+
+# Development Workflow
+
+I **will not** start by deploying to AWS.
+
+Development will happen in stages.
+
+---
+
+## Stage 1
+
+Local Development
+
+Run:
+
+Spring Boot from IntelliJ
+
+Flutter from Android Studio / VS Code
+
+PostgreSQL inside Docker
+
+Redis inside Docker
+
+Reason:
+
+Running Spring Boot directly from IntelliJ provides much faster development and debugging than rebuilding Docker images after every code change.
+
+---
+
+## Stage 2
+
+Local Docker Testing
+
+Once features are complete:
+
+Create Dockerfile.
+
+Create docker-compose.yml.
+
+Run the complete backend stack locally.
+
+Services:
+
+* Backend
+* PostgreSQL
+* Redis
+
+This ensures production parity before deployment.
+
+---
+
+## Stage 3
+
+AWS Deployment
+
+Deploy Docker containers onto AWS EC2.
+
+The AWS environment should closely resemble the local Docker environment.
+
+Eventually introduce:
+
+* Nginx
+* HTTPS
+* Domain
+* GitHub Actions deployment pipeline
+
+---
+
+# Planned Feature Development Order
+
+Build features in this exact order.
+
+## Phase 1
+
+Spring Boot setup
+
+Project structure
+
+Configuration
+
+Docker setup
+
+PostgreSQL
+
+Redis
+
+Flyway
+
+---
+
+## Phase 2
+
+Authentication
+
+JWT
+
+Login
+
+Registration
+
+Flutter login screen
+
+---
+
+## Phase 3
+
+Kite Connect Authentication
+
+OAuth
+
+Access Token
+
+Instrument Download
+
+Store instruments
+
+---
+
+## Phase 4
+
+Market Data
+
+Connect Kite WebSocket
+
+Receive ticks
+
+Store latest prices in Redis
+
+Forward updates through Spring WebSocket
+
+Flutter live watchlist
+
+---
+
+## Phase 5
+
+Candle Engine
+
+Convert ticks into:
+
+* 1 minute candles
+* 5 minute candles
+* 15 minute candles
+
+Persist completed candles.
+
+---
+
+## Phase 6
+
+Technical Indicators
+
+Implement:
+
+EMA
+
+VWAP
+
+RSI
+
+MACD
+
+ATR
+
+SuperTrend
+
+Indicators must be validated against TradingView.
+
+---
+
+## Phase 7
+
+Strategy Engine
+
+Every strategy must implement:
+
+```java
+public interface Strategy {
+    Signal evaluate(Candle candle);
+}
+```
+
+Strategies generate signals only.
+
+They never place orders.
+
+---
+
+## Phase 8
+
+Paper Trading
+
+Virtual Orders
+
+PnL
+
+Trade Journal
+
+Portfolio
+
+Position Tracking
+
+The same strategy engine should power both paper and live trading.
+
+---
+
+## Phase 9
+
+Risk Engine
+
+Implement:
+
+Maximum Daily Loss
+
+Maximum Trades
+
+Maximum Capital
+
+Position Sizing
+
+Open Position Limits
+
+Risk validation must always execute before order placement.
+
+---
+
+## Phase 10
+
+Live Trading
+
+Only after paper trading has been thoroughly tested.
+
+Order Service
+
+Modify Orders
+
+Cancel Orders
+
+Track Order Status
+
+Feature flag:
+
+```yaml
+trading:
+  live-enabled: false
+```
+
+Never enable live trading by default.
+
+---
+
+## Phase 11
+
+Analytics
+
+Dashboard
+
+Win Rate
+
+Profit Factor
+
+Average Return
+
+Trade History
+
+Strategy Performance
+
+---
+
+## Phase 12
+
+Backtesting Engine
+
+Historical Candle Data
+
+Strategy Simulation
+
+Performance Reports
+
+Drawdown
+
+Win %
+
+Profit Factor
+
+---
+
+# Docker Usage
+
+Development:
+
+Spring Boot runs from IntelliJ.
+
+Docker runs:
+
+* PostgreSQL
+* Redis
+
+Later:
+
+Backend will also run inside Docker.
+
+Production:
+
+Everything runs inside Docker containers.
+
+Docker Compose should manage:
+
+* Backend
+* PostgreSQL
+* Redis
+* Nginx
+
+---
+
+# Flutter Responsibilities
+
+Flutter should never contain business logic.
+
+Flutter responsibilities:
+
+Authentication
+
+Dashboard
+
+Orders
+
+Positions
+
+Watchlist
+
+Analytics
+
+Settings
+
+Receive live updates using WebSockets.
+
+Communicate with backend using REST APIs.
+
+---
+
+# Backend Responsibilities
+
+Backend owns:
+
+Business Logic
+
+Strategy Engine
+
+Risk Engine
+
+Order Engine
+
+Indicator Calculations
+
+Database
+
+Broker Communication
+
+Caching
+
+Notifications
+
+---
+
+# Documentation
+
+Maintain documentation throughout development.
+
+Eventually create:
+
+AGENTS.md
+
+ROADMAP.md
+
+HLD.md
+
+LLD.md
+
+API.md
+
+DB_SCHEMA.md
+
+DEPLOYMENT.md
+
+AWS.md
+
+DOCKER.md
+
+CODING_STANDARDS.md
+
+---
+
+# Expectations from the AI Assistant
+
+When helping with this project:
+
+* Think like a senior backend engineer and software architect.
+* Prioritize maintainability over cleverness.
+* Explain architectural decisions before writing code.
+* Build features incrementally.
+* Avoid overengineering.
+* Suggest industry best practices.
+* Keep the project monolithic unless there is a compelling reason to split services.
+* Assume the end goal is a production-quality portfolio project demonstrating Java, Spring Boot, Flutter, Docker, AWS, PostgreSQL, Redis, WebSockets, and Zerodha Kite Connect.
+* When appropriate, provide HLD/LLD diagrams, folder structures, sequence diagrams, database schema suggestions, and deployment guidance in addition to code.
+
+This project is intended to be both a learning experience and a showcase of backend engineering, cloud deployment, mobile integration, and system design skills.

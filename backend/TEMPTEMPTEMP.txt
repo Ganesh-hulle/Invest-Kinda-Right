@@ -1,1 +1,17 @@
-mvnw.cmd spring-boot:run
+--START Spring-Boot
+mvn clean spring-boot:run
+
+--Completely ReSTART Docker
+docker compose up -d
+
+--Down Docker
+docker compose stop
+
+--Up Docker
+docker compose start
+
+--Kill Docker but keep volume
+docker compose down
+
+--Connect to Docker
+docker exec -it ikr-postgres psql -U ikr -d ikr

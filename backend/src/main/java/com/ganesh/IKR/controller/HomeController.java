@@ -8,6 +8,6 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "Algo Trader Backend";
+        return "IKR ( ͡° ͜ʖ ͡°)";
     }
 }

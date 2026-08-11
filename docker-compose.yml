@@ -1,0 +1,26 @@
+services:
+
+  postgres:
+    image: postgres:16
+
+    container_name: ikr-postgres
+
+    environment:
+      POSTGRES_DB: ikr
+      POSTGRES_USER: ikr
+      POSTGRES_PASSWORD: localpassword
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ikr -d ikr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -2,6 +2,7 @@ package com.ganesh.IKR.config;
 
 import com.ganesh.IKR.entity.User;
 import com.ganesh.IKR.repository.UserRepository;
+import com.ganesh.IKR.security.CustomUserDetails;
 import com.ganesh.IKR.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,11 +48,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    private org.springframework.security.core.userdetails.UserDetails toUserDetails(User user) {
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPasswordHash())
-                .authorities("USER")
-                .build();
+    private CustomUserDetails toUserDetails(User user) {
+        return new CustomUserDetails(user);
     }
 }

@@ -4,6 +4,8 @@ import com.ganesh.IKR.dto.auth.AuthResponse;
 import com.ganesh.IKR.dto.auth.LoginRequest;
 import com.ganesh.IKR.dto.auth.RegisterRequest;
 import com.ganesh.IKR.entity.User;
+import com.ganesh.IKR.exception.DuplicateUserException;
+import com.ganesh.IKR.exception.InvalidCredentialsException;
 import com.ganesh.IKR.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,13 +27,13 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.existsByUsername(request.username())) {
-            throw new IllegalArgumentException(
+            throw new DuplicateUserException(
                     "Username already exists"
             );
         }
 
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException(
+            throw new DuplicateUserException(
                     "Email already exists"
             );
         }
@@ -61,9 +63,7 @@ public class AuthService {
         User user = userRepository
                 .findByUsername(request.username())
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Invalid username or password"
-                        )
+                        new InvalidCredentialsException()
                 );
 
         boolean passwordMatches =
@@ -73,9 +73,7 @@ public class AuthService {
                 );
 
         if (!passwordMatches) {
-            throw new IllegalArgumentException(
-                    "Invalid username or password"
-            );
+            throw new InvalidCredentialsException();
         }
 
         return new AuthResponse(

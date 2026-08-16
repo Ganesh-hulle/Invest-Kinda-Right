@@ -1,6 +1,10 @@
 server:
   port: 8080
 
+jwt:
+  secret: "++PWr0Ddh9aNq4n9FbgRoGJ0Xzukp1sM2UVRoX4LX+I=" #DEV KEY. to be changed in production
+  expiration: ${JWT_EXPIRATION:PT1H}
+
 spring:
 
   datasource:

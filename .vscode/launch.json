@@ -1,0 +1,21 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "IkrApplication",
+            "request": "launch",
+            "mainClass": "com.ganesh.IKR.IkrApplication",
+            "projectName": "IKR",
+            "env": {
+                "KITE_API_KEY": "your_kite_api_key",
+                "KITE_API_SECRET": "your_kite_api_secret",
+                "KITE_REDIRECT_URL": "your_kite_redirection_URL",
+                "KITE_TOKEN_ENCRYPTION_KEY": "your_kite_token_encryption_key"
+            }
+        }
+    ]
+}

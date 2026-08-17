@@ -2,6 +2,7 @@ package com.ganesh.IKR.controller;
 
 import com.ganesh.IKR.dto.kite.KiteLoginUrlResponse;
 import com.ganesh.IKR.dto.kite.KiteProfileResponse;
+import com.ganesh.IKR.dto.kite.KitePortfolioResponse;
 import com.ganesh.IKR.security.CustomUserDetails;
 import com.ganesh.IKR.service.KiteService;
 import org.springframework.security.core.Authentication;
@@ -30,5 +31,11 @@ public class KiteController {
     public KiteProfileResponse profile(Authentication authentication) {
         var user = (CustomUserDetails) authentication.getPrincipal();
         return kiteService.getProfile(user.getId());
+    }
+
+    @GetMapping("/portfolio")
+    public KitePortfolioResponse portfolio(Authentication authentication) {
+        var user = (CustomUserDetails) authentication.getPrincipal();
+        return kiteService.getPortfolio(user.getId());
     }
 }

@@ -3,6 +3,7 @@ package com.ganesh.IKR.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganesh.IKR.config.KiteProperties;
 import com.ganesh.IKR.dto.kite.KiteProfileResponse;
+import com.ganesh.IKR.dto.kite.KitePortfolioResponse;
 import com.ganesh.IKR.entity.KiteConnection;
 import com.ganesh.IKR.entity.KiteOAuthState;
 import com.ganesh.IKR.entity.User;
@@ -18,6 +19,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 @Service
 public class KiteService {
@@ -75,6 +79,23 @@ public class KiteService {
         KiteConnection connection = connectionRepository.findByUserId(userId)
                 .orElseThrow(() -> new KiteApiException("Kite account is not connected"));
         return kiteClient.profile(cipher.decrypt(connection.getEncryptedAccessToken(), connection.getAccessTokenIv()));
+    }
+
+    @Transactional(readOnly = true)
+    public KitePortfolioResponse getPortfolio(Long userId) {
+        KiteConnection connection = connectionRepository.findByUserId(userId)
+                .orElseThrow(() -> new KiteApiException("Kite account is not connected"));
+        String accessToken = cipher.decrypt(connection.getEncryptedAccessToken(), connection.getAccessTokenIv());
+        var holdingsResponse = kiteClient.portfolioData(accessToken, "/portfolio/holdings");
+        var positionsResponse = kiteClient.portfolioData(accessToken, "/portfolio/positions");
+        List<Map<String, Object>> holdings = objectMapper.convertValue(
+                holdingsResponse.path("data"), new TypeReference<>() {});
+        var positions = positionsResponse.path("data");
+        List<Map<String, Object>> netPositions = objectMapper.convertValue(
+                positions.path("net"), new TypeReference<>() {});
+        List<Map<String, Object>> dayPositions = objectMapper.convertValue(
+                positions.path("day"), new TypeReference<>() {});
+        return new KitePortfolioResponse(holdings, netPositions, dayPositions);
     }
 
     private String encode(String value) { return URLEncoder.encode(value, StandardCharsets.UTF_8); }

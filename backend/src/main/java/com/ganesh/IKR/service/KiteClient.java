@@ -58,6 +58,13 @@ public class KiteClient {
         }
     }
 
+    public JsonNode portfolioData(String accessToken, String resource) {
+        requireConfigured();
+        return parseJson(call(() -> client.get().uri(resource).header("X-Kite-Version", "3")
+                .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
+                .retrieve().body(String.class)));
+    }
+
     private <T> T call(java.util.function.Supplier<T> request) {
         try { return request.get(); }
         catch (RestClientResponseException exception) {

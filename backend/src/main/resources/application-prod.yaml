@@ -1,0 +1,6 @@
+kite:
+  api-key: ${KITE_API_KEY}
+  api-secret: ${KITE_API_SECRET}
+  redirect-url: ${KITE_REDIRECT_URL}
+  api-base-url: ${KITE_API_BASE_URL:https://api.kite.trade}
+  token-encryption-key: ${KITE_TOKEN_ENCRYPTION_KEY}

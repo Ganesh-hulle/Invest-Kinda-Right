@@ -39,6 +39,11 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler({KiteApiException.class, KiteConfigurationException.class})
+    public ResponseEntity<ErrorResponse> handleKiteException(RuntimeException exception, HttpServletRequest request) {
+        return errorResponse(HttpStatus.BAD_GATEWAY, "KITE_INTEGRATION_FAILED", exception.getMessage(), request);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,

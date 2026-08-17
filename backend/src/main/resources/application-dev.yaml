@@ -5,8 +5,14 @@ jwt:
   secret: "++PWr0Ddh9aNq4n9FbgRoGJ0Xzukp1sM2UVRoX4LX+I=" #DEV KEY. to be changed in production
   expiration: ${JWT_EXPIRATION:PT1H}
 
-spring:
+kite:
+  api-key: ${KITE_API_KEY:}
+  api-secret: ${KITE_API_SECRET:}
+  redirect-url: ${KITE_REDIRECT_URL:http://localhost:8080/api/v1/kite/callback}
+  api-base-url: ${KITE_API_BASE_URL:https://api.kite.trade}
+  token-encryption-key: ${KITE_TOKEN_ENCRYPTION_KEY:}
 
+spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/ikr
     username: ikr

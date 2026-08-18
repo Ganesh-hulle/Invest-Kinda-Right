@@ -14,4 +14,4 @@ docker compose start
 docker compose down
 
 --Connect to Docker
-docker exec -it ikr-postgres psql -U ikr -d ikr
+docker exec -it ikr-postgres psql -U ikr -d ikr 

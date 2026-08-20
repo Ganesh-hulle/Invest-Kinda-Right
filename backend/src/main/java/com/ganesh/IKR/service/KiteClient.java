@@ -65,6 +65,13 @@ public class KiteClient {
                 .retrieve().body(String.class)));
     }
 
+    public String instrumentDump(String accessToken) {
+        requireApiKey();
+        return call(() -> client.get().uri("/instruments").header("X-Kite-Version", "3")
+                .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
+                .accept(MediaType.valueOf("text/csv")).retrieve().body(String.class));
+    }
+
     private <T> T call(java.util.function.Supplier<T> request) {
         try { return request.get(); }
         catch (RestClientResponseException exception) {
@@ -93,6 +100,11 @@ public class KiteClient {
     private void requireConfigured() {
         if (properties.getApiKey() == null || properties.getApiKey().isBlank() || properties.getApiSecret() == null || properties.getApiSecret().isBlank())
             throw new KiteApiException("KITE_API_KEY and KITE_API_SECRET must be configured");
+    }
+
+    private void requireApiKey() {
+        if (properties.getApiKey() == null || properties.getApiKey().isBlank())
+            throw new KiteApiException("KITE_API_KEY must be configured");
     }
 
     private String sha256(String value) {

@@ -3,8 +3,10 @@ package com.ganesh.IKR.controller;
 import com.ganesh.IKR.dto.kite.KiteLoginUrlResponse;
 import com.ganesh.IKR.dto.kite.KiteProfileResponse;
 import com.ganesh.IKR.dto.kite.KitePortfolioResponse;
+import com.ganesh.IKR.dto.kite.InstrumentSyncResponse;
 import com.ganesh.IKR.security.CustomUserDetails;
 import com.ganesh.IKR.service.KiteService;
+import com.ganesh.IKR.service.InstrumentSyncService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,7 +14,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/kite")
 public class KiteController {
     private final KiteService kiteService;
-    public KiteController(KiteService kiteService) { this.kiteService = kiteService; }
+    private final InstrumentSyncService instrumentSyncService;
+    public KiteController(KiteService kiteService, InstrumentSyncService instrumentSyncService) {
+        this.kiteService = kiteService; this.instrumentSyncService = instrumentSyncService;
+    }
+
+    @PostMapping("/instruments/sync")
+    public InstrumentSyncResponse syncInstruments(Authentication authentication) {
+        var user = (CustomUserDetails) authentication.getPrincipal();
+        return instrumentSyncService.syncInstruments(user.getId());
+    }
 
     @GetMapping("/login-url")
     public KiteLoginUrlResponse loginUrl(Authentication authentication) {

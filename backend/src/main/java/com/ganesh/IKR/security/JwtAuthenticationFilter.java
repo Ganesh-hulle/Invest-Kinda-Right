@@ -12,6 +12,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -19,6 +21,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -41,6 +44,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             authenticate(token, request);
+        } else if (token == null && request.getRequestURI().equals("/api/v1/kite/instruments/sync")) {
+            log.warn("JWT authentication header was not present for instrument sync request");
         }
 
         filterChain.doFilter(request, response);
@@ -63,14 +68,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-        } catch (RuntimeException ignored) {
-            // Invalid tokens are treated as unauthenticated requests.
+        } catch (RuntimeException exception) {
+            log.warn("JWT authentication failed: {}", exception.getMessage());
+            // Invalid tokens are treated as unauthenticated requests and rejected by Spring Security.
         }
     }
 
     private String extractToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith(BEARER_PREFIX)) {
+        if (header == null || !header.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
             return null;
         }
         return header.substring(BEARER_PREFIX.length()).trim();

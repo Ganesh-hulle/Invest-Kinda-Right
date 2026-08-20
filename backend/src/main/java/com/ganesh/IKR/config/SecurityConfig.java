@@ -13,6 +13,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 //import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 public class SecurityConfig {
@@ -32,6 +34,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/api/v1/auth/**").permitAll()
                     .requestMatchers("/api/v1/kite/callback").permitAll()
                     .requestMatchers("/api/v1/system/health").permitAll()
@@ -44,6 +47,9 @@ public class SecurityConfig {
             )
             .httpBasic(httpBasic -> httpBasic.disable())
             .formLogin(formLogin -> formLogin.disable())
+            .exceptionHandling(exceptions -> exceptions
+                    .authenticationEntryPoint((request, response, exception) ->
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Valid Bearer token required")))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

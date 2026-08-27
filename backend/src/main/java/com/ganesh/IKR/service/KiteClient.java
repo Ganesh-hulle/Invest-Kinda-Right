@@ -11,12 +11,15 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Component
 public class KiteClient {
@@ -71,6 +74,29 @@ public class KiteClient {
                 .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
                 .accept(MediaType.valueOf("text/csv")).retrieve().body(String.class));
     }
+
+    public JsonNode historicalData(String accessToken, Long instrumentToken, String from,
+                                   String to, String interval) {
+        requireApiKey();
+        String uri = UriComponentsBuilder.fromPath("/instruments/historical/{instrumentToken}/{interval}")
+                .queryParam("from", from)
+                .queryParam("to", to)
+                .buildAndExpand(instrumentToken, interval)
+                .toUriString();
+        return parseJson(call(() -> client.get().uri(uri).header("X-Kite-Version", "3")
+                .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
+                .retrieve().body(String.class)));
+    }
+
+        // Supported intervals:
+        // minute
+        // 3minute
+        // 5minute
+        // 10minute
+        // 15minute
+        // 30minute
+        // 60minute
+        // day
 
     private <T> T call(java.util.function.Supplier<T> request) {
         try { return request.get(); }

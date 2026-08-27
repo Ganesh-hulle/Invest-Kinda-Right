@@ -4,8 +4,11 @@ import com.ganesh.IKR.entity.Instrument;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
+import java.util.Optional;
 
 public interface InstrumentRepository extends JpaRepository<Instrument, Long> {
+    Optional<Instrument> findByInstrumentToken(Long instrumentToken);
+
     @Query("select i from Instrument i where upper(i.tradingsymbol) like upper(concat('%', :query, '%')) "
             + "or upper(coalesce(i.name, '')) like upper(concat('%', :query, '%')) "
             + "order by case when upper(i.tradingsymbol) = upper(:query) then 0 else 1 end, "

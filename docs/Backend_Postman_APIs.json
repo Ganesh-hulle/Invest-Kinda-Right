@@ -1,0 +1,633 @@
+{
+  "info": {
+    "_postman_id": "6e8c3cbe-adfe-4a80-8f51-7001aad332c6",
+    "name": "Proj",
+    "description": "### Welcome to Postman! This is your first collection.\n\nCollections are your starting point for building and testing APIs. You can use this one to:\n\n• Group related requests  \n• Test your API in real-world scenarios  \n• Document and share your requests\n\nUpdate the name and overview whenever you’re ready to make it yours.\n\n[Learn more about Postman Collections.](https://learning.postman.com/docs/collections/collections-overview/)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51056360",
+    "_collection_link": "https://go.postman.co/collection/51056360-6e8c3cbe-adfe-4a80-8f51-7001aad332c6?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "AUTH",
+      "item": [
+        {
+          "name": "AUTH/ REGISTER",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"ganeshhulle\",\r\n    \"firstname\":\"Ganesh\",\r\n    \"lastname\": \"Hulle\",\r\n    \"email\": \"hulleganesh07@gmail.com\",\r\n    \"password\": \"Ashwin@123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "AUTH /LOGIN",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"ganeshhulle\",\r\n    \"password\": \"Ashwin@123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ME",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJnYW5lc2hodWxsZSIsImlhdCI6MTc4Njg5NjcwNiwiZXhwIjoxNzg2OTAwMzA2fQ.kD8bN8x1wfUgLu87bwQusxyK9bo2xhG8QBAW6hYZPC8",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/getCurrentUser",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "getCurrentUser"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "TEST",
+      "item": [
+        {
+          "name": "TEST",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id\": 4, \"name\": \"Test User 2\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST 'http://localhost:8080/test' -H 'Content-Type: application/json' -d '{\"id\": 3, \"name\": \"Test User\"}'"
+          },
+          "response": []
+        },
+        {
+          "name": "TEST2",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test2/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test2",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "GaneshHulle",
+                  "description": "The ID of the TestOracle resource to retrieve"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "KITE",
+      "item": [
+        {
+          "name": "http://localhost:8080/api/v1/kite/login-url",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kite/login-url",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kite",
+                "login-url"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/kite/profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kite/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kite",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/kite/portfolio",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kite/portfolio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kite",
+                "portfolio"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/kite/instruments/sync",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kite/instruments/sync",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kite",
+                "instruments",
+                "sync"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/instruments/search",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/instruments/search?query=CRUDEoil",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "instruments",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "CRUDEoil"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/kite/historical",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kite/historical?instrumentToken=147523591&from=2026-08-31&to=2026-08-31&interval=5minute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kite",
+                "historical"
+              ],
+              "query": [
+                {
+                  "key": "instrumentToken",
+                  "value": "147523591"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-08-31"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-08-31"
+                },
+                {
+                  "key": "interval",
+                  "value": "5minute"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/market-data/quotes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/market-data/quotes?instrumentTokens=147523591",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "market-data",
+                "quotes"
+              ],
+              "query": [
+                {
+                  "key": "instrumentTokens",
+                  "value": "147523591"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/market-data/candles",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/market-data/candles?instrumentToken=147523591&timeframe=5minute&from=2026-08-31T09:15:00%2B05:30&to=2026-08-31T22:30:00%2B05:30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "market-data",
+                "candles"
+              ],
+              "query": [
+                {
+                  "key": "instrumentToken",
+                  "value": "147523591"
+                },
+                {
+                  "key": "timeframe",
+                  "value": "5minute"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-08-31T09:15:00%2B05:30"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-08-31T22:30:00%2B05:30"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/kite/market-data/connect\n",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instrumentTokens\": [147523591]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kite/market-data/connect",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kite",
+                "market-data",
+                "connect"
+              ],
+              "query": [
+                {
+                  "key": "instrumentTokens",
+                  "value": "147523591",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/indicators/latest",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/indicators/latest?instrumentToken=147523591&timeframe=5minute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "indicators",
+                "latest"
+              ],
+              "query": [
+                {
+                  "key": "instrumentToken",
+                  "value": "147523591"
+                },
+                {
+                  "key": "timeframe",
+                  "value": "5minute"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "http://localhost:8080/api/v1/strategies/ema-crossover/signal",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/strategies/ema-crossover/signal?instrumentToken=147523591&timeframe=5minute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "strategies",
+                "ema-crossover",
+                "signal"
+              ],
+              "query": [
+                {
+                  "key": "instrumentToken",
+                  "value": "147523591"
+                },
+                {
+                  "key": "timeframe",
+                  "value": "5minute"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

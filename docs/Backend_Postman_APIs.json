@@ -12,7 +12,7 @@
       "name": "AUTH",
       "item": [
         {
-          "name": "AUTH/ REGISTER",
+          "name": "REGISTER",
           "request": {
             "method": "POST",
             "header": [],
@@ -41,7 +41,7 @@
           "response": []
         },
         {
-          "name": "AUTH /LOGIN",
+          "name": "LOGIN",
           "request": {
             "method": "POST",
             "header": [],
@@ -205,7 +205,7 @@
       "name": "KITE",
       "item": [
         {
-          "name": "http://localhost:8080/api/v1/kite/login-url",
+          "name": "LOGIN",
           "request": {
             "auth": {
               "type": "bearer",
@@ -235,7 +235,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/kite/profile",
+          "name": "PROFILE",
           "request": {
             "auth": {
               "type": "bearer",
@@ -265,7 +265,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/kite/portfolio",
+          "name": "PORTFOLIO",
           "request": {
             "auth": {
               "type": "bearer",
@@ -295,7 +295,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/kite/instruments/sync",
+          "name": "SYNC-INSTRUMENTS",
           "request": {
             "auth": {
               "type": "bearer",
@@ -326,7 +326,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/instruments/search",
+          "name": "SEARCH-SCRIP",
           "request": {
             "auth": {
               "type": "bearer",
@@ -362,7 +362,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/kite/historical",
+          "name": "HISTORIC-CANDLE",
           "request": {
             "auth": {
               "type": "bearer",
@@ -410,7 +410,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/market-data/quotes",
+          "name": "MRKT-DATA-QUOTES",
           "request": {
             "auth": {
               "type": "bearer",
@@ -446,7 +446,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/market-data/candles",
+          "name": "MRKT-DATA-CANDLES",
           "request": {
             "auth": {
               "type": "bearer",
@@ -494,7 +494,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/kite/market-data/connect\n",
+          "name": "MRKT-DATA-CONNECT",
           "request": {
             "auth": {
               "type": "bearer",
@@ -547,7 +547,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/indicators/latest",
+          "name": "INDICATORS-LATEST",
           "request": {
             "auth": {
               "type": "bearer",
@@ -587,7 +587,7 @@
           "response": []
         },
         {
-          "name": "http://localhost:8080/api/v1/strategies/ema-crossover/signal",
+          "name": "STRAT-EMA",
           "request": {
             "auth": {
               "type": "bearer",

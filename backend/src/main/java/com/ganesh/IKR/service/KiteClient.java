@@ -12,6 +12,8 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
+import com.ganesh.IKR.dto.order.OrderRequest;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +88,37 @@ public class KiteClient {
         return parseJson(call(() -> client.get().uri(uri).header("X-Kite-Version", "3")
                 .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
                 .retrieve().body(String.class)));
+    }
+
+    public JsonNode placeOrder(String accessToken, String exchange, String tradingsymbol, OrderRequest request) {
+        requireConfigured();
+        var form = new LinkedMultiValueMap<String, String>();
+        form.add("exchange", exchange); form.add("tradingsymbol", tradingsymbol);
+        form.add("transaction_type", request.side().toUpperCase()); form.add("order_type", request.orderType().toUpperCase());
+        form.add("quantity", request.quantity().toString()); form.add("product", "MIS"); form.add("validity", "DAY");
+        if (request.price() != null) form.add("price", request.price().toPlainString());
+        if (request.stopLoss() != null) form.add("trigger_price", request.stopLoss().toPlainString());
+        return parseJson(call(() -> client.post().uri("/orders/regular").header("X-Kite-Version", "3")
+                .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED).body(form).retrieve().body(String.class)));
+    }
+
+    public JsonNode cancelOrder(String accessToken, String brokerOrderId) {
+        requireConfigured();
+        return parseJson(call(() -> client.delete().uri("/orders/regular/{orderId}", brokerOrderId).header("X-Kite-Version", "3")
+                .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken).retrieve().body(String.class)));
+    }
+
+    public JsonNode modifyOrder(String accessToken, String brokerOrderId, Integer quantity,
+                                java.math.BigDecimal price, java.math.BigDecimal triggerPrice) {
+        requireConfigured();
+        var form = new LinkedMultiValueMap<String, String>();
+        if (quantity != null) form.add("quantity", quantity.toString());
+        if (price != null) form.add("price", price.toPlainString());
+        if (triggerPrice != null) form.add("trigger_price", triggerPrice.toPlainString());
+        return parseJson(call(() -> client.put().uri("/orders/regular/{orderId}", brokerOrderId).header("X-Kite-Version", "3")
+                .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED).body(form).retrieve().body(String.class)));
     }
 
         // Supported intervals:

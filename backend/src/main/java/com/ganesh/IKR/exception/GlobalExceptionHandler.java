@@ -44,6 +44,21 @@ public class GlobalExceptionHandler {
         return errorResponse(HttpStatus.BAD_GATEWAY, "KITE_INTEGRATION_FAILED", exception.getMessage(), request);
     }
 
+    @ExceptionHandler(RiskRejectedException.class)
+    public ResponseEntity<ErrorResponse> handleRisk(RiskRejectedException exception, HttpServletRequest request) {
+        return errorResponse(HttpStatus.UNPROCESSABLE_ENTITY, "RISK_REJECTED", exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(LiveTradingDisabledException.class)
+    public ResponseEntity<ErrorResponse> handleLiveDisabled(LiveTradingDisabledException exception, HttpServletRequest request) {
+        return errorResponse(HttpStatus.CONFLICT, "LIVE_TRADING_DISABLED", exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException exception, HttpServletRequest request) {
+        return errorResponse(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", exception.getMessage(), request);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,

@@ -21,4 +21,14 @@ public class MarketCandle {
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false) private OffsetDateTime createdAt;
 
     protected MarketCandle() { }
+
+    public Long getInstrumentToken() { return instrumentToken; }
+    public String getExchange() { return exchange; }
+    public String getTimeframe() { return timeframe; }
+    public OffsetDateTime getCandleTime() { return candleTime; }
+    public BigDecimal getOpen() { return open; }
+    public BigDecimal getHigh() { return high; }
+    public BigDecimal getLow() { return low; }
+    public BigDecimal getClose() { return close; }
+    public Long getVolume() { return volume; }
 }

@@ -43,11 +43,16 @@ public class InstrumentSyncService {
                 cipher.decrypt(connection.getEncryptedAccessToken(), connection.getAccessTokenIv())));
         if (instruments.isEmpty()) throw new KiteApiException("Kite returned an empty instrument dump");
 
-        jdbcTemplate.update("DELETE FROM instruments");
         jdbcTemplate.batchUpdate("""
                 INSERT INTO instruments (instrument_token, exchange, tradingsymbol, name, segment,
                     instrument_type, expiry, strike, tick_size, lot_size, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT (instrument_token) DO UPDATE SET
+                    exchange = EXCLUDED.exchange, tradingsymbol = EXCLUDED.tradingsymbol,
+                    name = EXCLUDED.name, segment = EXCLUDED.segment,
+                    instrument_type = EXCLUDED.instrument_type, expiry = EXCLUDED.expiry,
+                    strike = EXCLUDED.strike, tick_size = EXCLUDED.tick_size,
+                    lot_size = EXCLUDED.lot_size, updated_at = CURRENT_TIMESTAMP
                 """, instruments, 500, (statement, row) -> {
             statement.setLong(1, row.instrumentToken());
             statement.setString(2, row.exchange());

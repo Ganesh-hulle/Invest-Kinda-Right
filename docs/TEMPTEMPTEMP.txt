@@ -13,5 +13,8 @@ docker compose start
 --Kill Docker but keep volume
 docker compose down
 
---Connect to Docker
+--Connect to POSTGRESQL
 docker exec -it ikr-postgres psql -U ikr -d ikr 
+
+--Connect to REDIS
+docker exec -it ikr-redis redis-cli

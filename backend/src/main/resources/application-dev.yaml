@@ -34,3 +34,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+market-data:
+  dev-tick-endpoint-enabled: ${DEV_TICK_ENDPOINT_ENABLED:true}

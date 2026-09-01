@@ -7,3 +7,17 @@ spring:
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev} 
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT:1s}
+
+trading:
+  live-enabled: ${TRADING_LIVE_ENABLED:false}
+  paper-starting-capital: ${PAPER_STARTING_CAPITAL:1000000}
+
+market-data:
+  websocket-url: ${KITE_WS_URL:wss://ws.kite.trade}
+  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}

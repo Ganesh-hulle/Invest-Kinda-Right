@@ -1,6 +1,6 @@
 package com.ganesh.IKR.service;
 
-import com.ganesh.IKR.entity.MarketCandle;
+// import com.ganesh.IKR.entity.MarketCandle;
 import com.ganesh.IKR.marketdata.Candle;
 import com.ganesh.IKR.marketdata.MarketTick;
 import org.springframework.jdbc.core.JdbcTemplate;

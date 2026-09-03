@@ -3,6 +3,7 @@ package com.ganesh.IKR.controller;
 import com.ganesh.IKR.marketdata.InstrumentTokensRequest;
 import com.ganesh.IKR.security.CustomUserDetails;
 import com.ganesh.IKR.service.KiteMarketDataService;
+import com.ganesh.IKR.service.KiteMarketDataStatus;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,12 @@ public class KiteMarketDataController {
         Long userId = ((CustomUserDetails) authentication.getPrincipal()).getId();
         service.connect(userId, request.instrumentTokens());
         return Map.of("status", "CONNECTING", "instrumentTokens", request.instrumentTokens());
+    }
+
+    @GetMapping("/status")
+    public KiteMarketDataStatus status(Authentication authentication) {
+        Long userId = ((CustomUserDetails) authentication.getPrincipal()).getId();
+        return service.status(userId);
     }
 
     @PostMapping("/disconnect")

@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 
@@ -47,7 +48,8 @@ public class MarketDataController {
     public java.util.Map<String, String> devTick(@Valid @RequestBody DevTickRequest request) {
         if (!devTickEndpointEnabled) throw new IllegalStateException("Development tick endpoint is disabled");
         pipeline.accept(new com.ganesh.IKR.marketdata.MarketTick(request.instrumentToken(), null, null, request.lastPrice(),
-                request.lastTradedQuantity(), request.cumulativeVolume(), request.timestamp() == null ? OffsetDateTime.now() : request.timestamp()));
+                request.lastTradedQuantity(), request.cumulativeVolume(), request.timestamp() == null
+                        ? OffsetDateTime.now(ZoneId.of("Asia/Kolkata")) : request.timestamp()));
         return java.util.Map.of("status", "ACCEPTED");
     }
 }

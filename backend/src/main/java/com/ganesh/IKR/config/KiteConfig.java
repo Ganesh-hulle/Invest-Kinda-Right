@@ -2,6 +2,7 @@ package com.ganesh.IKR.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +20,7 @@ public class KiteConfig {
     @Bean
     public ObjectMapper objectMapper() {
         return JsonMapper.builder()
-                .findAndAddModules()
+                .addModule(new JavaTimeModule())
                 .build();
     }
 }

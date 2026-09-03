@@ -20,4 +20,5 @@ trading:
 
 market-data:
   websocket-url: ${KITE_WS_URL:wss://ws.kite.trade}
+  websocket-mode: ${KITE_WS_MODE:full}
   allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}

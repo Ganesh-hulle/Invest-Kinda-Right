@@ -76,6 +76,45 @@ Content-Type: application/json
 }
 ```
 
+### Connection status and diagnostics
+
+```http
+GET /api/v1/kite/market-data/status
+Authorization: Bearer <application-jwt>
+```
+
+Example response:
+
+```json
+{
+  "status": "CONNECTED",
+  "requestedInstrumentTokens": [147523591],
+  "binaryFrames": 12,
+  "heartbeats": 4,
+  "packetsReceived": 8,
+  "ticksAccepted": 8,
+  "ticksRejected": 0,
+  "unmatchedPackets": 0,
+  "malformedFrames": 0,
+  "shortPackets": 0,
+  "lastPacketToken": 147523591,
+  "lastUnmatchedToken": null,
+  "connectedAt": "2026-09-02T22:40:00+05:30",
+  "lastTickAt": "2026-09-02T22:41:12+05:30",
+  "closedAt": null,
+  "lastError": null
+}
+```
+
+Interpretation:
+
+- `CONNECTED` with increasing `heartbeats` but zero `packetsReceived`: the socket is alive but Kite is not sending quote packets.
+- Increasing `packetsReceived` with zero `ticksAccepted`: compare `lastPacketToken` and `lastUnmatchedToken` with `requestedInstrumentTokens`.
+- Increasing `ticksAccepted` with an updated `lastTickAt`: the live quote was stored and `/market-data/quotes` should update.
+- `ERROR` or `CLOSED`: inspect `lastError` and the application log for the Kite close code/reason.
+
+The backend uses Kite `full` mode by default so live ticks can use the exchange timestamp for candle bucketing. Set `KITE_WS_MODE=quote` if lower bandwidth is preferred; quote mode falls back to backend receipt time because it does not contain the exchange timestamp.
+
 ### Disconnect
 
 ```http

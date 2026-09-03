@@ -18,6 +18,7 @@ import java.util.*;
 
 @Service
 public class HistoricalDataService {
+    private static final ZoneId MARKET_ZONE = ZoneId.of("Asia/Kolkata");
     private static final Set<String> SUPPORTED_INTERVALS = Set.of(
             "minute", "3minute", "5minute", "10minute", "15minute", "30minute", "60minute", "day");
     private static final DateTimeFormatter KITE_DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -83,7 +84,9 @@ public class HistoricalDataService {
     private CandleRow parseCandle(JsonNode candle) {
         if (!candle.isArray() || candle.size() < 6) throw new KiteApiException("Invalid candle returned by Kite");
         try {
-            return new CandleRow(OffsetDateTime.parse(candle.get(0).asText(), KITE_TIMESTAMP),
+            OffsetDateTime candleTime = OffsetDateTime.parse(candle.get(0).asText(), KITE_TIMESTAMP)
+                    .atZoneSameInstant(MARKET_ZONE).toOffsetDateTime();
+            return new CandleRow(candleTime,
                     decimal(candle.get(1)), decimal(candle.get(2)), decimal(candle.get(3)),
                     decimal(candle.get(4)), candle.get(5).asLong());
         } catch (DateTimeParseException | NumberFormatException exception) {

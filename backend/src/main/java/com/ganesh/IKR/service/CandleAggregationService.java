@@ -9,12 +9,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class CandleAggregationService {
+    private static final ZoneId MARKET_ZONE = ZoneId.of("Asia/Kolkata");
     private static final Map<String, Long> TIMEFRAMES = Map.of("1minute", 60L, "5minute", 300L, "15minute", 900L);
     private final JdbcTemplate jdbcTemplate;
     private final Map<Key, MutableCandle> active = new ConcurrentHashMap<>();
@@ -59,8 +60,9 @@ public class CandleAggregationService {
     }
 
     private OffsetDateTime bucket(OffsetDateTime timestamp, long seconds) {
-        long epoch = timestamp.toEpochSecond();
-        return OffsetDateTime.ofInstant(java.time.Instant.ofEpochSecond(epoch - Math.floorMod(epoch, seconds)), ZoneOffset.UTC);
+        long epoch = timestamp.toInstant().getEpochSecond();
+        long bucketEpoch = epoch - Math.floorMod(epoch, seconds);
+        return OffsetDateTime.ofInstant(java.time.Instant.ofEpochSecond(bucketEpoch), MARKET_ZONE);
     }
 
     private record Key(Long instrumentToken, String timeframe) { }

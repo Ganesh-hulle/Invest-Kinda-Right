@@ -50,7 +50,7 @@ class MarketWsService extends ChangeNotifier {
 
   WsConnectionState _state = WsConnectionState.disconnected;
   String? _lastError;
-  String _wsBaseUrl = 'ws://10.0.2.2:8080';
+  String _wsBaseUrl = 'ws://127.0.0.1:8080';
 
   // Stream controller for quote updates
   final _quoteController = StreamController<QuoteUpdate>.broadcast();

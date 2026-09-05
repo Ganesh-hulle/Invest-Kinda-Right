@@ -15,7 +15,7 @@ import 'features/orders/provider/orders_provider.dart';
 import 'features/analytics/provider/analytics_provider.dart';
 import 'features/settings/provider/settings_provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   const storage = FlutterSecureStorage(
@@ -23,8 +23,15 @@ void main() {
   );
 
   final secureStorage = SecureStorage(storage);
-  final dioClient = DioClient(secureStorage: secureStorage);
+  final savedBaseUrl = await secureStorage.readBaseUrl();
+  final dioClient = DioClient(
+    secureStorage: secureStorage,
+    initialBaseUrl: savedBaseUrl,
+  );
   final wsService = MarketWsService(secureStorage: secureStorage);
+  if (savedBaseUrl != null) {
+    wsService.updateWsBaseUrl(savedBaseUrl.replaceFirst('http', 'ws'));
+  }
 
   runApp(
     MultiProvider(
@@ -68,7 +75,7 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => SettingsProvider(dioClient: dioClient),
         ),
-        Provider<MarketWsService>.value(value: wsService),
+        ChangeNotifierProvider<MarketWsService>.value(value: wsService),
         Provider<AppConfig>.value(value: AppConfig.defaultConfig()),
       ],
       child: const IKRApp(),

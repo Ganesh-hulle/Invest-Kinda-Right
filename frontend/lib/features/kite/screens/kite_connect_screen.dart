@@ -24,10 +24,17 @@ class _KiteConnectScreenState extends State<KiteConnectScreen> {
     result.fold(
       onSuccess: (url) async {
         final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          if (mounted) showErrorSnackbar(context, 'Could not open browser');
+        try {
+          final launched = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          if (!launched) {
+            // Fallback to platform default if externalApplication failed
+            await launchUrl(uri, mode: LaunchMode.platformDefault);
+          }
+        } catch (e) {
+          if (mounted) showErrorSnackbar(context, 'Could not open browser: $e');
         }
       },
       onFailure: (f) => showErrorSnackbar(context, f.message),

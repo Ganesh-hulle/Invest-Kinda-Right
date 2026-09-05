@@ -5,7 +5,7 @@ import '../../../core/network/result.dart';
 import '../../../core/network/api_exception.dart';
 import '../model/kite_models.dart';
 
-/// Pure API layer for all Kite / Zerodha endpoints.
+/// Pure API layer for all Kite / Zerodha endpoints. 
 class KiteApi {
   final DioClient dioClient;
 

@@ -7,9 +7,12 @@ class DioClient {
   final SecureStorage secureStorage;
   late final Dio _dio;
 
-  static String _baseUrl = 'http://10.0.2.2:8080';
+  static String _baseUrl = 'http://127.0.0.1:8080';
 
-  DioClient({required this.secureStorage}) {
+  DioClient({required this.secureStorage, String? initialBaseUrl}) {
+    if (initialBaseUrl != null && initialBaseUrl.isNotEmpty) {
+      _baseUrl = initialBaseUrl;
+    }
     _dio = Dio(
       BaseOptions(
         baseUrl: _baseUrl,
@@ -32,10 +35,11 @@ class DioClient {
     ]);
   }
 
-  /// Update base URL at runtime (from Settings screen).
+  /// Update base URL at runtime (from Settings or Login screen).
   void updateBaseUrl(String url) {
     _baseUrl = url;
     _dio.options.baseUrl = url;
+    secureStorage.saveBaseUrl(url);
   }
 
   String get baseUrl => _dio.options.baseUrl;

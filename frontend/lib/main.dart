@@ -5,7 +5,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/network/dio_client.dart';
+import 'core/services/biometric_service.dart';
 import 'core/storage/secure_storage.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/websocket/market_ws_service.dart';
 import 'features/auth/provider/auth_provider.dart';
 import 'features/kite/provider/kite_provider.dart';
@@ -22,7 +24,7 @@ void main() async {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
-  final secureStorage = SecureStorage(storage);
+  const secureStorage = SecureStorage(storage);
   final savedBaseUrl = await secureStorage.readBaseUrl();
   final dioClient = DioClient(
     secureStorage: secureStorage,
@@ -33,11 +35,17 @@ void main() async {
     wsService.updateWsBaseUrl(savedBaseUrl.replaceFirst('http', 'ws'));
   }
 
+  final biometricService = BiometricService();
+  final themeProvider = ThemeProvider(secureStorage: secureStorage);
+  await themeProvider.init();
+
   runApp(
     MultiProvider(
       providers: [
         Provider<DioClient>.value(value: dioClient),
         Provider<SecureStorage>.value(value: secureStorage),
+        Provider<BiometricService>.value(value: biometricService),
+        ChangeNotifierProvider<ThemeProvider>.value(value: themeProvider),
         ChangeNotifierProvider(
           create: (_) => AuthProvider(
             dioClient: dioClient,

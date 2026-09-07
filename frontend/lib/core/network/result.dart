@@ -79,3 +79,8 @@ final class ServerFailure extends ApiFailure {
 final class UnknownFailure extends ApiFailure {
   const UnknownFailure([super.message = 'An unexpected error occurred.']);
 }
+
+final class AppFailure extends ApiFailure {
+  const AppFailure(super.message);
+}
+

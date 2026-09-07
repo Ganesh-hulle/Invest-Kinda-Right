@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/services/biometric_service.dart';
+import '../../../core/storage/secure_storage.dart';
 import '../../../core/websocket/market_ws_service.dart';
 import '../../../shared/widgets/error_snackbar.dart';
 import '../provider/auth_provider.dart';
@@ -20,6 +22,35 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+
+  bool _canUseBiometrics = false;
+  String? _biometricUsername;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    try {
+      final secureStorage = context.read<SecureStorage>();
+      final bioService = context.read<BiometricService>();
+
+      final isEnabled = await secureStorage.isBiometricEnabled();
+      final creds = await secureStorage.readBiometricCredentials();
+      final canAuth = await bioService.canCheckBiometrics();
+
+      if (mounted) {
+        setState(() {
+          _canUseBiometrics = isEnabled && creds != null && canAuth;
+          _biometricUsername = creds?.username;
+        });
+      }
+    } catch (_) {
+      // Biometrics unavailable
+    }
+  }
 
   @override
   void dispose() {
@@ -39,6 +70,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _loginWithBiometrics() async {
+    final auth = context.read<AuthProvider>();
+    final bioService = context.read<BiometricService>();
+    final result = await auth.loginWithBiometrics(bioService);
+    if (!mounted) return;
+    result.fold(
+      onSuccess: (_) => context.go('/dashboard'),
+      onFailure: (f) => showErrorSnackbar(context, f.message),
+    );
+  }
+
   void _showServerConfigDialog() {
     final dioClient = context.read<DioClient>();
     final wsService = context.read<MarketWsService>();
@@ -51,39 +93,62 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.surfaceVariant,
-          title: const Row(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Row(
             children: [
-              Icon(Icons.dns_rounded, color: AppColors.primary, size: 22),
-              SizedBox(width: 8),
-              Text('Server Settings', style: TextStyle(color: AppColors.onSurface, fontSize: 18)),
+              const Icon(Icons.dns_rounded, color: AppColors.primary, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'Server Settings',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 18,
+                ),
+              ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Configure backend server address:',
-                style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: ctrl,
-                style: const TextStyle(color: AppColors.onSurface, fontSize: 14),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 14,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'API Base URL',
                   hintText: 'http://127.0.0.1:8080',
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
               const SizedBox(height: 12),
               if (isChecking)
                 const Row(
                   children: [
-                    SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    ),
                     SizedBox(width: 8),
-                    Text('Testing connection...', style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13)),
+                    Text(
+                      'Testing connection...',
+                      style: TextStyle(fontSize: 13),
+                    ),
                   ],
                 )
               else if (statusMessage != null)
@@ -117,11 +182,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         });
                         try {
                           final testUrl = ctrl.text.trim();
-                          final res = await dioClient.dio.get('$testUrl/api/v1/system/health');
+                          final res = await dioClient.dio
+                              .get('$testUrl/api/v1/system/health');
                           setDialogState(() {
                             isChecking = false;
                             isSuccess = res.statusCode == 200;
-                            statusMessage = 'Server UP (${res.data['service'] ?? 'IKR-backend'})';
+                            statusMessage =
+                                'Server UP (${res.data['service'] ?? 'IKR-backend'})';
                           });
                         } catch (e) {
                           setDialogState(() {
@@ -164,15 +231,19 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = context.watch<AuthProvider>().isLoading;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.dns_outlined, color: AppColors.onSurfaceMuted),
+            icon: Icon(
+              Icons.dns_outlined,
+              color: theme.colorScheme.onSurface.withAlpha(160),
+            ),
             tooltip: 'Server Connection',
             onPressed: _showServerConfigDialog,
           ),
@@ -184,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
                 // Logo
                 Container(
                   width: 64,
@@ -193,23 +264,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.candlestick_chart_rounded,
-                      color: Colors.white, size: 36),
+                  child: const Icon(
+                    Icons.candlestick_chart_rounded,
+                    color: Colors.white,
+                    size: 36,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
                   'Invest Kinda Right',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppColors.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Sign in to your trading account',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.onSurfaceMuted,
-                      ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withAlpha(160),
+                  ),
                 ),
                 const SizedBox(height: 40),
                 Form(
@@ -219,9 +293,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextFormField(
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: AppColors.onSurface),
+                        style: TextStyle(color: theme.colorScheme.onSurface),
                         decoration: const InputDecoration(
-                          labelText: 'Email',
+                          labelText: 'Username or Email',
                           prefixIcon: Icon(Icons.email_outlined, size: 20),
                         ),
                         validator: (v) {
@@ -235,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextFormField(
                         controller: _passwordCtrl,
                         obscureText: _obscurePassword,
-                        style: const TextStyle(color: AppColors.onSurface),
+                        style: TextStyle(color: theme.colorScheme.onSurface),
                         decoration: InputDecoration(
                           labelText: 'Password',
                           prefixIcon: const Icon(Icons.lock_outline, size: 20),
@@ -251,38 +325,88 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         validator: (v) {
-                          if (v == null || v.isEmpty)
+                          if (v == null || v.isEmpty) {
                             return 'Password is required';
-                          if (v.length < 6)
+                          }
+                          if (v.length < 6) {
                             return 'Password must be at least 6 characters';
+                          }
                           return null;
                         },
                       ),
                       const SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : _submit,
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text('Sign In'),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: isLoading ? null : _submit,
+                              child: isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Sign In'),
+                            ),
+                          ),
+                          if (_canUseBiometrics) ...[
+                            const SizedBox(width: 12),
+                            Container(
+                              height: 48,
+                              width: 48,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withAlpha(30),
+                                border: Border.all(color: AppColors.primary),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: IconButton(
+                                tooltip:
+                                    'Sign in with Fingerprint (${_biometricUsername ?? ''})',
+                                icon: const Icon(
+                                  Icons.fingerprint_rounded,
+                                  color: AppColors.primary,
+                                  size: 28,
+                                ),
+                                onPressed:
+                                    isLoading ? null : _loginWithBiometrics,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      if (_canUseBiometrics && _biometricUsername != null) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: isLoading ? null : _loginWithBiometrics,
+                            icon: const Icon(Icons.fingerprint_rounded, size: 20),
+                            label: Text(
+                              'Sign In as $_biometricUsername with Fingerprint',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: const BorderSide(color: AppColors.primary),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             "Don't have an account? ",
                             style: TextStyle(
-                                color: AppColors.onSurfaceMuted, fontSize: 14),
+                              color: theme.colorScheme.onSurface.withAlpha(160),
+                              fontSize: 14,
+                            ),
                           ),
                           TextButton(
                             onPressed: () => context.go('/register'),

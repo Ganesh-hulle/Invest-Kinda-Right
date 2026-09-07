@@ -8,6 +8,7 @@ import '../../../shared/widgets/pnl_chip.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../model/portfolio_models.dart';
 import '../provider/portfolio_provider.dart';
+import '../widgets/portfolio_detail_sheet.dart';
 import '../../kite/provider/kite_provider.dart';
 
 class PortfolioScreen extends StatefulWidget {
@@ -240,9 +241,11 @@ class _HoldingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+    return InkWell(
+      onTap: () => PortfolioDetailSheet.show(context, holding: item),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
@@ -291,8 +294,9 @@ class _HoldingTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ── Positions List ────────────────────────────────────────────────────────────
@@ -337,76 +341,79 @@ class _PositionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      item.tradingsymbol,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _ExchangeChip(exchange: item.exchange),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      'Qty ${item.quantity}  ·  ',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.onSurfaceMuted,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant2,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        item.product,
+    return InkWell(
+      onTap: () => PortfolioDetailSheet.show(context, position: item),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        item.tradingsymbol,
                         style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.onSurfaceMuted,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      _ExchangeChip(exchange: item.exchange),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        'Qty ${item.quantity}  ·  ',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.onSurfaceMuted,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant2,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          item.product,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.onSurfaceMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  fmt.format(item.lastPrice),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                  ),
                 ),
+                const SizedBox(height: 4),
+                PnlChip(value: item.pnl),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                fmt.format(item.lastPrice),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 4),
-              PnlChip(value: item.pnl),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

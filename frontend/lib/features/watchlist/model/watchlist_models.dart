@@ -68,16 +68,45 @@ class WatchlistItem {
     this.isLoading = false,
   });
 
+  factory WatchlistItem.fromJson(Map<String, dynamic> json) {
+    return WatchlistItem(
+      instrumentToken: (json['instrumentToken'] as num?)?.toInt() ??
+          (json['instrument_token'] as num?)?.toInt() ??
+          0,
+      tradingsymbol: json['tradingsymbol']?.toString() ?? '',
+      exchange: json['exchange']?.toString() ?? '',
+      lastPrice: (json['lastPrice'] as num?)?.toDouble() ??
+          (json['last_price'] as num?)?.toDouble() ??
+          0.0,
+      change: (json['change'] as num?)?.toDouble() ?? 0.0,
+      changePercent: (json['changePercent'] as num?)?.toDouble() ??
+          (json['change_percent'] as num?)?.toDouble() ??
+          0.0,
+      isLoading: false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'instrumentToken': instrumentToken,
+        'tradingsymbol': tradingsymbol,
+        'exchange': exchange,
+        'lastPrice': lastPrice,
+        'change': change,
+        'changePercent': changePercent,
+      };
+
   WatchlistItem copyWith({
     double? lastPrice,
     double? change,
     double? changePercent,
     bool? isLoading,
+    String? tradingsymbol,
+    String? exchange,
   }) {
     return WatchlistItem(
       instrumentToken: instrumentToken,
-      tradingsymbol: tradingsymbol,
-      exchange: exchange,
+      tradingsymbol: tradingsymbol ?? this.tradingsymbol,
+      exchange: exchange ?? this.exchange,
       lastPrice: lastPrice ?? this.lastPrice,
       change: change ?? this.change,
       changePercent: changePercent ?? this.changePercent,

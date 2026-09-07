@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
@@ -42,17 +43,29 @@ class WatchlistProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final tokens = await secureStorage.readWatchlistTokens();
-      if (tokens.isNotEmpty) {
-        // Build item stubs from stored tokens while we fetch real data
-        _items = tokens
-            .map((t) => WatchlistItem(
-                  instrumentToken: t,
-                  tradingsymbol: 'Loading...',
-                  exchange: '',
-                ))
+      final jsonStr = await secureStorage.readWatchlistJson();
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(jsonStr) as List<dynamic>;
+        _items = decoded
+            .map((item) => WatchlistItem.fromJson(item as Map<String, dynamic>))
             .toList();
         notifyListeners();
+      } else {
+        // Fallback for backward compatibility if only raw tokens were stored
+        final tokens = await secureStorage.readWatchlistTokens();
+        if (tokens.isNotEmpty) {
+          _items = tokens
+              .map((t) => WatchlistItem(
+                    instrumentToken: t,
+                    tradingsymbol: 'Token $t',
+                    exchange: '',
+                  ))
+              .toList();
+          notifyListeners();
+        }
+      }
+
+      if (_items.isNotEmpty) {
         await refreshQuotes();
       }
     } catch (e) {
@@ -88,25 +101,20 @@ class WatchlistProvider extends ChangeNotifier {
     if (idx == -1) return;
 
     final old = _items[idx];
+    final hasValidSymbol = update.tradingsymbol != null &&
+        update.tradingsymbol!.isNotEmpty &&
+        update.tradingsymbol != 'Loading...';
+
     _items[idx] = old.copyWith(
+      tradingsymbol: hasValidSymbol ? update.tradingsymbol! : old.tradingsymbol,
+      exchange: (update.exchange != null && update.exchange!.isNotEmpty)
+          ? update.exchange!
+          : old.exchange,
       lastPrice: update.lastPrice,
       change: update.change ?? old.change,
       changePercent: update.changePercent ?? old.changePercent,
       isLoading: false,
     );
-
-    // Update tradingsymbol/exchange from WS if available
-    if (update.tradingsymbol != null &&
-        _items[idx].tradingsymbol == 'Loading...') {
-      _items[idx] = WatchlistItem(
-        instrumentToken: update.instrumentToken,
-        tradingsymbol: update.tradingsymbol!,
-        exchange: update.exchange ?? old.exchange,
-        lastPrice: update.lastPrice,
-        change: update.change ?? 0,
-        changePercent: update.changePercent ?? 0,
-      );
-    }
 
     notifyListeners();
   }
@@ -115,8 +123,9 @@ class WatchlistProvider extends ChangeNotifier {
 
   Future<void> addInstrument(InstrumentResult instrument) async {
     // Prevent duplicates
-    if (_items.any((i) => i.instrumentToken == instrument.instrumentToken))
+    if (_items.any((i) => i.instrumentToken == instrument.instrumentToken)) {
       return;
+    }
 
     final newItem = WatchlistItem(
       instrumentToken: instrument.instrumentToken,
@@ -173,10 +182,23 @@ class WatchlistProvider extends ChangeNotifier {
         for (final q in quotes) {
           _applyQuote(q);
         }
+        for (int i = 0; i < _items.length; i++) {
+          if (_items[i].isLoading) {
+            _items[i] = _items[i].copyWith(isLoading: false);
+          }
+        }
+        _persistItems();
         notifyListeners();
       },
-      onFailure: (f) =>
-          debugPrint('[Watchlist] refreshQuotes error: ${f.message}'),
+      onFailure: (f) {
+        debugPrint('[Watchlist] refreshQuotes error: ${f.message}');
+        for (int i = 0; i < _items.length; i++) {
+          if (_items[i].isLoading) {
+            _items[i] = _items[i].copyWith(isLoading: false);
+          }
+        }
+        notifyListeners();
+      },
     );
   }
 
@@ -189,8 +211,16 @@ class WatchlistProvider extends ChangeNotifier {
     if (idx == -1) return;
 
     final old = _items[idx];
-    final tradingsymbol = q['tradingsymbol']?.toString() ?? old.tradingsymbol;
-    final exchange = q['exchange']?.toString() ?? old.exchange;
+    final serverSymbol = q['tradingsymbol']?.toString();
+    final tradingsymbol = (serverSymbol != null && serverSymbol.isNotEmpty && serverSymbol != 'Loading...')
+        ? serverSymbol
+        : old.tradingsymbol;
+
+    final serverExchange = q['exchange']?.toString();
+    final exchange = (serverExchange != null && serverExchange.isNotEmpty)
+        ? serverExchange
+        : old.exchange;
+
     final lastPrice = (q['lastPrice'] as num?)?.toDouble() ??
         (q['last_price'] as num?)?.toDouble() ??
         old.lastPrice;
@@ -201,9 +231,8 @@ class WatchlistProvider extends ChangeNotifier {
 
     _items[idx] = WatchlistItem(
       instrumentToken: token,
-      tradingsymbol:
-          tradingsymbol == 'Loading...' ? old.tradingsymbol : tradingsymbol,
-      exchange: exchange.isEmpty ? old.exchange : exchange,
+      tradingsymbol: tradingsymbol,
+      exchange: exchange,
       lastPrice: lastPrice,
       change: change,
       changePercent: changePercent,
@@ -216,6 +245,8 @@ class WatchlistProvider extends ChangeNotifier {
   Future<void> _persistItems() async {
     final tokens = _items.map((i) => i.instrumentToken).toList();
     await secureStorage.saveWatchlistTokens(tokens);
+    final jsonList = _items.map((i) => i.toJson()).toList();
+    await secureStorage.saveWatchlistJson(jsonEncode(jsonList));
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────

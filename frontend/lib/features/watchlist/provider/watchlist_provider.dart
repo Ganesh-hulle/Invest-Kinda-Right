@@ -173,6 +173,15 @@ class WatchlistProvider extends ChangeNotifier {
     await _persistItems();
   }
 
+  Future<void> reconnectWs() async {
+    _subscribeToWsStream();
+    if (_items.isNotEmpty) {
+      wsService.disconnect();
+      await wsService.connect(instrumentTokens);
+    }
+    await refreshQuotes();
+  }
+
   Future<void> refreshQuotes() async {
     if (_items.isEmpty) return;
     final tokens = _items.map((i) => i.instrumentToken).toList();
@@ -200,6 +209,125 @@ class WatchlistProvider extends ChangeNotifier {
         notifyListeners();
       },
     );
+
+    // Fallback: If price is 0, query latest candle close price
+    await _fillMissingQuotesWithCandles();
+    // Resolve any legacy 'Token 123...' names to real symbols
+    await _resolveUnknownSymbols();
+  }
+
+  static const Map<int, Map<String, String>> _knownTokens = {
+    256265: {'symbol': 'NIFTY 50', 'exchange': 'NSE'},
+    260105: {'symbol': 'NIFTY BANK', 'exchange': 'NSE'},
+    257801: {'symbol': 'NIFTY FIN SERVICE', 'exchange': 'NSE'},
+    261897: {'symbol': 'NIFTY IT', 'exchange': 'NSE'},
+    265: {'symbol': 'SENSEX', 'exchange': 'BSE'},
+    738561: {'symbol': 'RELIANCE', 'exchange': 'NSE'},
+    2953217: {'symbol': 'TCS', 'exchange': 'NSE'},
+    408065: {'symbol': 'INFY', 'exchange': 'NSE'},
+    341249: {'symbol': 'HDFCBANK', 'exchange': 'NSE'},
+    1270529: {'symbol': 'ICICIBANK', 'exchange': 'NSE'},
+    779521: {'symbol': 'SBIN', 'exchange': 'NSE'},
+    81153: {'symbol': 'BAJFINANCE', 'exchange': 'NSE'},
+    3861249: {'symbol': 'KOTAKBANK', 'exchange': 'NSE'},
+    3452673: {'symbol': 'BHARTIARTL', 'exchange': 'NSE'},
+    895745: {'symbol': 'TATAMOTORS', 'exchange': 'NSE'},
+    897537: {'symbol': 'TATASTEEL', 'exchange': 'NSE'},
+    340481: {'symbol': 'HCLTECH', 'exchange': 'NSE'},
+    2939649: {'symbol': 'LT', 'exchange': 'NSE'},
+    3771393: {'symbol': 'WIPRO', 'exchange': 'NSE'},
+    134657: {'symbol': 'ITC', 'exchange': 'NSE'},
+  };
+
+  Future<void> _fillMissingQuotesWithCandles() async {
+    bool hasUpdates = false;
+    for (int i = 0; i < _items.length; i++) {
+      if (_items[i].lastPrice <= 0) {
+        final candleResult =
+            await _api.getRecentCandles(_items[i].instrumentToken);
+        candleResult.fold(
+          onSuccess: (candles) {
+            if (candles.isNotEmpty) {
+              final last = candles.last;
+              final close = (last['close'] as num?)?.toDouble();
+              final open = (last['open'] as num?)?.toDouble();
+              if (close != null && close > 0) {
+                final change =
+                    (open != null && open > 0) ? (close - open) : 0.0;
+                final changePercent = (open != null && open > 0)
+                    ? (change / open) * 100
+                    : 0.0;
+                final exchange = last['exchange']?.toString();
+                _items[i] = _items[i].copyWith(
+                  lastPrice: close,
+                  change: change,
+                  changePercent: changePercent,
+                  exchange: (exchange != null && exchange.isNotEmpty)
+                      ? exchange
+                      : (_items[i].exchange.isNotEmpty
+                          ? _items[i].exchange
+                          : 'NSE'),
+                  isLoading: false,
+                );
+                hasUpdates = true;
+              }
+            } else {
+              if (_items[i].isLoading) {
+                _items[i] = _items[i].copyWith(isLoading: false);
+                hasUpdates = true;
+              }
+            }
+          },
+          onFailure: (_) {
+            if (_items[i].isLoading) {
+              _items[i] = _items[i].copyWith(isLoading: false);
+              hasUpdates = true;
+            }
+          },
+        );
+      }
+    }
+    if (hasUpdates) {
+      await _persistItems();
+      notifyListeners();
+    }
+  }
+
+  Future<void> _resolveUnknownSymbols() async {
+    bool hasUpdates = false;
+    for (int i = 0; i < _items.length; i++) {
+      if (_items[i].tradingsymbol.startsWith('Token ') ||
+          _items[i].tradingsymbol.isEmpty) {
+        final token = _items[i].instrumentToken;
+        if (_knownTokens.containsKey(token)) {
+          final info = _knownTokens[token]!;
+          _items[i] = _items[i].copyWith(
+            tradingsymbol: info['symbol']!,
+            exchange: info['exchange']!,
+          );
+          hasUpdates = true;
+          continue;
+        }
+
+        final resolved = await _api.resolveTradingSymbol(token);
+        if (resolved != null &&
+            resolved['symbol'] != null &&
+            resolved['symbol']!.isNotEmpty) {
+          _items[i] = _items[i].copyWith(
+            tradingsymbol: resolved['symbol']!,
+            exchange: (resolved['exchange'] != null &&
+                    resolved['exchange']!.isNotEmpty)
+                ? resolved['exchange']!
+                : (_items[i].exchange.isNotEmpty ? _items[i].exchange : 'NSE'),
+          );
+          hasUpdates = true;
+        }
+      }
+    }
+    if (hasUpdates) {
+      await _persistItems();
+      notifyListeners();
+    }
   }
 
   void _applyQuote(Map<String, dynamic> q) {
@@ -212,7 +340,10 @@ class WatchlistProvider extends ChangeNotifier {
 
     final old = _items[idx];
     final serverSymbol = q['tradingsymbol']?.toString();
-    final tradingsymbol = (serverSymbol != null && serverSymbol.isNotEmpty && serverSymbol != 'Loading...')
+    final tradingsymbol = (serverSymbol != null &&
+            serverSymbol.isNotEmpty &&
+            serverSymbol != 'Loading...' &&
+            !serverSymbol.startsWith('Token '))
         ? serverSymbol
         : old.tradingsymbol;
 
@@ -221,9 +352,12 @@ class WatchlistProvider extends ChangeNotifier {
         ? serverExchange
         : old.exchange;
 
-    final lastPrice = (q['lastPrice'] as num?)?.toDouble() ??
-        (q['last_price'] as num?)?.toDouble() ??
-        old.lastPrice;
+    final incomingPrice = (q['lastPrice'] as num?)?.toDouble() ??
+        (q['last_price'] as num?)?.toDouble();
+    final lastPrice = (incomingPrice != null && incomingPrice > 0)
+        ? incomingPrice
+        : old.lastPrice;
+
     final change = (q['change'] as num?)?.toDouble() ?? old.change;
     final changePercent = (q['changePercent'] as num?)?.toDouble() ??
         (q['change_percent'] as num?)?.toDouble() ??

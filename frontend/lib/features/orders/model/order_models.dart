@@ -89,6 +89,7 @@ class PaperPosition {
   final double averagePrice;
   final double lastPrice;
   final double unrealizedPnl;
+  final double realizedPnl;
 
   const PaperPosition({
     required this.instrumentToken,
@@ -98,6 +99,7 @@ class PaperPosition {
     required this.averagePrice,
     required this.lastPrice,
     required this.unrealizedPnl,
+    this.realizedPnl = 0.0,
   });
 
   factory PaperPosition.fromJson(Map<String, dynamic> json) {
@@ -115,6 +117,8 @@ class PaperPosition {
       unrealizedPnl:
           (json['unrealizedPnl'] ?? json['unrealized_pnl'] ?? json['pnl'] ?? 0)
               .toDouble(),
+      realizedPnl:
+          (json['realizedPnl'] ?? json['realized_pnl'] ?? 0 as num).toDouble(),
     );
   }
 }

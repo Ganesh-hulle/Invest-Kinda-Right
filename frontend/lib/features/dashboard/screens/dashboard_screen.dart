@@ -161,7 +161,50 @@ class _KiteConnectionBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<KiteProvider>(
       builder: (context, kite, _) {
-        if (kite.isConnected) return const SizedBox.shrink();
+        if (kite.isConnected) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified_user_rounded,
+                      color: AppColors.buy, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Zerodha: ${kite.profile?.userName ?? 'Connected'}${kite.profile?.userId != null ? ' (${kite.profile!.userId})' : ''}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => context.push('/kite-connect'),
+                    icon: const Icon(Icons.sync_rounded, size: 14),
+                    label: const Text('Reconnect Zerodha',
+                        style: TextStyle(fontSize: 11)),
+                    style: TextButton.styleFrom(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Container(
@@ -184,8 +227,9 @@ class _KiteConnectionBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                TextButton(
+                TextButton.icon(
                   onPressed: () => context.push('/kite-connect'),
+                  icon: const Icon(Icons.cable_rounded, size: 14),
                   style: TextButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -196,7 +240,7 @@ class _KiteConnectionBanner extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('Connect',
+                  label: const Text('Connect Zerodha',
                       style:
                           TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
@@ -211,13 +255,121 @@ class _KiteConnectionBanner extends StatelessWidget {
 
 // ── Market Status Card ────────────────────────────────────────────────────
 
-class _MarketStatusCard extends StatelessWidget {
+class _MarketStatusCard extends StatefulWidget {
+  @override
+  State<_MarketStatusCard> createState() => _MarketStatusCardState();
+}
+
+class _MarketStatusCardState extends State<_MarketStatusCard> {
+  bool _isReconnecting = false;
+
+  Future<void> _reconnectFeed() async {
+    setState(() => _isReconnecting = true);
+    final watchlist = context.read<WatchlistProvider>();
+    final kite = context.read<KiteProvider>();
+    final tokens = watchlist.instrumentTokens;
+
+    try {
+      if (kite.isConnected && tokens.isNotEmpty) {
+        await kite.connectMarketData(tokens);
+      }
+      await watchlist.reconnectWs();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reconnected feed and refreshed market quotes'),
+            backgroundColor: AppColors.buy,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Reconnect error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isReconnecting = false);
+      }
+    }
+  }
+
+  Future<void> _reconnectZerodha() async {
+    setState(() => _isReconnecting = true);
+    final kite = context.read<KiteProvider>();
+    final watchlist = context.read<WatchlistProvider>();
+
+    try {
+      await kite.checkConnectionStatus();
+      if (!kite.isConnected) {
+        if (mounted) {
+          final shouldConnect = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppColors.surfaceVariant,
+              title: const Text('Zerodha Disconnected'),
+              content: const Text(
+                'Your Zerodha session is not connected or may have expired. Would you like to log in with Zerodha now?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  icon: const Icon(Icons.open_in_browser_rounded, size: 16),
+                  label: const Text('Login with Zerodha'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldConnect == true && mounted) {
+            context.push('/kite-connect');
+          }
+        }
+        return;
+      }
+
+      // Reconnect market data feed with current watchlist tokens
+      final tokens = watchlist.instrumentTokens;
+      if (tokens.isNotEmpty) {
+        await kite.connectMarketData(tokens);
+      }
+      await watchlist.reconnectWs();
+      await kite.fetchPortfolio();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Successfully reconnected to Zerodha feed!'),
+            backgroundColor: AppColors.buy,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to reconnect Zerodha: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isReconnecting = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<MarketWsService>(
       builder: (context, ws, _) {
         final isConnected = ws.isConnected;
-        final isConnecting = ws.state == WsConnectionState.connecting;
+        final isConnecting = ws.state == WsConnectionState.connecting || _isReconnecting;
         final dotColor = isConnected
             ? AppColors.buy
             : isConnecting
@@ -229,49 +381,114 @@ class _MarketStatusCard extends StatelessWidget {
                 ? 'Connecting...'
                 : 'Feed Disconnected';
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 0),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.divider),
-            ),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 9,
-                  height: 9,
-                  decoration: BoxDecoration(
-                    color: dotColor,
-                    shape: BoxShape.circle,
-                    boxShadow: isConnected
-                        ? [
-                            BoxShadow(
-                                color: AppColors.buy.withAlpha(100),
-                                blurRadius: 6)
-                          ]
-                        : null,
-                  ),
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                  boxShadow: isConnected
+                      ? [
+                          BoxShadow(
+                              color: AppColors.buy.withAlpha(100),
+                              blurRadius: 6)
+                        ]
+                      : null,
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: const TextStyle(
-                      color: AppColors.onSurface,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: const TextStyle(
+                    color: AppColors.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500),
+              ),
+              const Spacer(),
+              if (!isConnected || isConnecting) ...[
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: isConnecting ? null : _reconnectFeed,
+                      icon: isConnecting
+                          ? const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: AppColors.primary),
+                            )
+                          : const Icon(Icons.refresh_rounded, size: 14),
+                      label: Text(
+                        isConnecting ? '...' : 'Feed',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: isConnecting ? null : _reconnectZerodha,
+                      icon: const Icon(Icons.cable_rounded, size: 14),
+                      label: const Text(
+                        'Reconnect Zerodha',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
                 ),
-                const Spacer(),
+              ] else ...[
+                IconButton(
+                  icon: const Icon(Icons.cable_rounded,
+                      size: 16, color: AppColors.buy),
+                  tooltip: 'Reconnect to Zerodha',
+                  onPressed: _reconnectZerodha,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.sync_rounded,
+                      size: 16, color: AppColors.onSurfaceMuted),
+                  tooltip: 'Refresh Feed Quotes',
+                  onPressed: _reconnectFeed,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
                 Text(
                   DateFormat('HH:mm').format(DateTime.now()),
                   style: const TextStyle(
                       color: AppColors.onSurfaceMuted, fontSize: 12),
                 ),
               ],
-            ),
+            ],
           ),
         );
       },

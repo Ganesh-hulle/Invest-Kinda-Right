@@ -17,6 +17,8 @@ class KiteProvider extends ChangeNotifier {
   String? _error;
   bool _isSyncing = false;
   String? _syncError;
+  int? _lastSyncedCount;
+  DateTime? _lastSyncedAt;
 
   KiteProvider({required DioClient dioClient})
       : _api = KiteApi(dioClient: dioClient);
@@ -31,6 +33,8 @@ class KiteProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isSyncing => _isSyncing;
   String? get syncError => _syncError;
+  int? get lastSyncedCount => _lastSyncedCount;
+  DateTime? get lastSyncedAt => _lastSyncedAt;
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
@@ -87,23 +91,28 @@ class KiteProvider extends ChangeNotifier {
     return result.map((r) => r.loginUrl);
   }
 
-  /// Triggers a full instrument sync. Returns typed [Result].
-  Future<Result<void>> syncInstruments() async {
+  /// Triggers a full instrument sync. Returns typed [Result<InstrumentSyncResponse>].
+  Future<Result<InstrumentSyncResponse>> syncInstruments() async {
     _isSyncing = true;
     _syncError = null;
     notifyListeners();
 
-    try {
-      await _api.syncInstruments();
-      _isSyncing = false;
-      notifyListeners();
-      return const Success(null);
-    } catch (e) {
-      _syncError = e.toString();
-      _isSyncing = false;
-      notifyListeners();
-      return Failure(UnknownFailure(_syncError!));
-    }
+    final result = await _api.syncInstruments();
+    result.fold(
+      onSuccess: (res) {
+        _lastSyncedCount = res.instrumentCount;
+        _lastSyncedAt = res.syncedAt ?? DateTime.now();
+        _isSyncing = false;
+        notifyListeners();
+      },
+      onFailure: (f) {
+        _syncError = f.message;
+        _isSyncing = false;
+        notifyListeners();
+      },
+    );
+
+    return result;
   }
 
   /// Connects the market-data WebSocket for the given instrument [tokens].

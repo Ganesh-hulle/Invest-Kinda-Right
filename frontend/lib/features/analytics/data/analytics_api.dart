@@ -95,13 +95,15 @@ class AnalyticsApi {
     String interval,
   ) async {
     try {
+      // Kite requires 'minute' instead of '1minute'
+      final kiteInterval = interval == '1minute' ? 'minute' : interval;
       final resp = await _dio.get<List<dynamic>>(
         '/api/v1/kite/historical',
         queryParameters: {
           'instrumentToken': token,
           'from': from,
           'to': to,
-          'interval': interval,
+          'interval': kiteInterval,
         },
       );
       final list = (resp.data ?? [])

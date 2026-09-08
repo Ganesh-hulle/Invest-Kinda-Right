@@ -127,3 +127,24 @@ class KitePortfolioSummary {
     );
   }
 }
+
+/// Response returned by POST /api/v1/kite/instruments/sync
+class InstrumentSyncResponse {
+  final int instrumentCount;
+  final DateTime? syncedAt;
+
+  const InstrumentSyncResponse({
+    required this.instrumentCount,
+    this.syncedAt,
+  });
+
+  factory InstrumentSyncResponse.fromJson(Map<String, dynamic> json) {
+    return InstrumentSyncResponse(
+      instrumentCount:
+          (json['instrumentCount'] ?? json['instrument_count'] ?? 0) as int,
+      syncedAt: json['syncedAt'] != null
+          ? DateTime.tryParse(json['syncedAt'].toString())
+          : null,
+    );
+  }
+}

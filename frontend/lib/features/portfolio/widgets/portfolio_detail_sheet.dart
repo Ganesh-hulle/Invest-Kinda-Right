@@ -9,6 +9,7 @@ import '../model/portfolio_models.dart';
 
 /// Modal bottom sheet displaying detailed stats for a holding or position item.
 class PortfolioDetailSheet extends StatelessWidget {
+  final int? instrumentToken;
   final String tradingsymbol;
   final String exchange;
   final String product;
@@ -19,6 +20,7 @@ class PortfolioDetailSheet extends StatelessWidget {
 
   const PortfolioDetailSheet({
     super.key,
+    this.instrumentToken,
     required this.tradingsymbol,
     required this.exchange,
     required this.product,
@@ -30,6 +32,7 @@ class PortfolioDetailSheet extends StatelessWidget {
 
   factory PortfolioDetailSheet.fromHolding(HoldingItem holding) {
     return PortfolioDetailSheet(
+      instrumentToken: holding.instrumentToken,
       tradingsymbol: holding.tradingsymbol,
       exchange: holding.exchange,
       product: 'CNC',
@@ -42,6 +45,7 @@ class PortfolioDetailSheet extends StatelessWidget {
 
   factory PortfolioDetailSheet.fromPosition(PositionItem position) {
     return PortfolioDetailSheet(
+      instrumentToken: position.instrumentToken,
       tradingsymbol: position.tradingsymbol,
       exchange: position.exchange,
       product: position.product.isNotEmpty ? position.product : 'MIS',
@@ -277,7 +281,16 @@ class PortfolioDetailSheet extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
-                    context.push('/analytics');
+                    final queryParams = <String, String>{
+                      'symbol': tradingsymbol,
+                      'exchange': exchange,
+                    };
+                    if (instrumentToken != null) {
+                      queryParams['token'] = instrumentToken.toString();
+                    }
+                    context.push(
+                      Uri(path: '/candles', queryParameters: queryParams).toString(),
+                    );
                   },
                   icon: const Icon(Icons.show_chart_rounded, size: 18),
                   label: const Text('Chart & Stats'),

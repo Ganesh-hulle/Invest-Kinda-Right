@@ -13,6 +13,7 @@ import '../../features/orders/screens/orders_screen.dart';
 import '../../features/analytics/screens/analytics_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/kite/screens/kite_connect_screen.dart';
+import '../../features/analytics/screens/candle_chart_screen.dart';
 import '../widgets/main_shell.dart';
 
 class AppRouter {
@@ -50,6 +51,20 @@ class AppRouter {
       GoRoute(
         path: '/instrument-search',
         builder: (_, __) => const InstrumentSearchScreen(),
+      ),
+      GoRoute(
+        path: '/candles',
+        builder: (context, state) {
+          final tokenStr = state.uri.queryParameters['token'];
+          final token = tokenStr != null ? int.tryParse(tokenStr) : null;
+          final symbol = state.uri.queryParameters['symbol'] ?? 'CHART';
+          final exchange = state.uri.queryParameters['exchange'] ?? 'NSE';
+          return CandleChartScreen(
+            instrumentToken: token,
+            tradingsymbol: symbol,
+            exchange: exchange,
+          );
+        },
       ),
       ShellRoute(
         navigatorKey: _shellKey,

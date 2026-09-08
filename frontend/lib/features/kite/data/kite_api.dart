@@ -60,11 +60,18 @@ class KiteApi {
   }
 
   /// Triggers a full instrument sync on the backend.
-  Future<void> syncInstruments() async {
+  Future<Result<InstrumentSyncResponse>> syncInstruments() async {
     try {
-      await dioClient.post('/api/v1/kite/instruments/sync');
-    } catch (_) {
-      // Fire-and-forget; caller should handle errors separately if needed.
+      final response = await dioClient.post('/api/v1/kite/instruments/sync');
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return Success(InstrumentSyncResponse.fromJson(data));
+      }
+      return const Failure(ServerFailure('Unexpected response format.'));
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
     }
   }
 

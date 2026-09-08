@@ -128,6 +128,22 @@ class _KiteConnectScreenState extends State<KiteConnectScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLaunching ? null : _connectKite,
+                    icon: _isLaunching
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: AppColors.primary),
+                          )
+                        : const Icon(Icons.sync_rounded),
+                    label: const Text('Reconnect / Re-authenticate Zerodha'),
+                  ),
+                ),
               ],
             ],
           ),

@@ -272,7 +272,42 @@ class _AnalyticsContent extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
         _SignalCard(signal: provider.signal),
-        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Price & Candles',
+              style: TextStyle(
+                color: AppColors.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                final token = provider.selectedToken;
+                final symbol = provider.selectedSymbol ?? 'CHART';
+                final queryParams = <String, String>{
+                  'symbol': symbol,
+                  'exchange': 'NSE',
+                };
+                if (token != null) {
+                  queryParams['token'] = token.toString();
+                }
+                context.push(
+                  Uri(path: '/candles', queryParameters: queryParams).toString(),
+                );
+              },
+              icon: const Icon(Icons.fullscreen_rounded, size: 18),
+              label: const Text('Fullscreen (Landscape)'),
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         if (provider.candles.isNotEmpty) ...[
           _CandleChart(candles: provider.candles),
           const SizedBox(height: 16),

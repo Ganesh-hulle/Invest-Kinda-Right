@@ -1,5 +1,6 @@
 /// Portfolio domain models.
 class HoldingItem {
+  final int? instrumentToken;
   final String tradingsymbol;
   final String exchange;
   final int quantity;
@@ -8,6 +9,7 @@ class HoldingItem {
   final double pnl;
 
   const HoldingItem({
+    this.instrumentToken,
     required this.tradingsymbol,
     required this.exchange,
     required this.quantity,
@@ -17,7 +19,9 @@ class HoldingItem {
   });
 
   factory HoldingItem.fromJson(Map<String, dynamic> json) {
+    final token = (json['instrument_token'] ?? json['instrumentToken'] as num?)?.toInt();
     return HoldingItem(
+      instrumentToken: token,
       tradingsymbol:
           (json['tradingsymbol'] ?? json['trading_symbol'] ?? '') as String,
       exchange: (json['exchange'] ?? '') as String,
@@ -31,6 +35,7 @@ class HoldingItem {
 }
 
 class PositionItem {
+  final int? instrumentToken;
   final String tradingsymbol;
   final String exchange;
   final int quantity;
@@ -40,6 +45,7 @@ class PositionItem {
   final String product;
 
   const PositionItem({
+    this.instrumentToken,
     required this.tradingsymbol,
     required this.exchange,
     required this.quantity,
@@ -50,7 +56,9 @@ class PositionItem {
   });
 
   factory PositionItem.fromJson(Map<String, dynamic> json) {
+    final token = (json['instrument_token'] ?? json['instrumentToken'] as num?)?.toInt();
     return PositionItem(
+      instrumentToken: token,
       tradingsymbol:
           (json['tradingsymbol'] ?? json['trading_symbol'] ?? '') as String,
       exchange: (json['exchange'] ?? '') as String,

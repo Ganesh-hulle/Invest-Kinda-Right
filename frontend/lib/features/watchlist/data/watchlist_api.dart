@@ -53,4 +53,149 @@ class WatchlistApi {
       return Failure(mapDioError(e));
     }
   }
+
+  /// Fetch recent candles for an instrument token from market-data engine.
+  /// Uses ISO 8601 UTC formatting so Spring Boot parses OffsetDateTime properly.
+  Future<Result<List<Map<String, dynamic>>>> getRecentCandles(
+    int token, {
+    String timeframe = '5minute',
+    int daysBack = 14,
+  }) async {
+    try {
+      final now = DateTime.now().toUtc();
+      final from = now.subtract(Duration(days: daysBack)).toIso8601String();
+      final to = now.toIso8601String();
+      final response = await dioClient.get(
+        '/api/v1/market-data/candles',
+        queryParameters: {
+          'instrumentToken': token,
+          'timeframe': timeframe,
+          'from': from,
+          'to': to,
+        },
+      );
+      final data = response.data;
+      if (data is List) {
+        final list = data.whereType<Map<String, dynamic>>().toList();
+        if (list.isNotEmpty) return Success(list);
+      }
+
+      // Fallback: If 5minute had no data, try 'day' timeframe
+      if (timeframe != 'day') {
+        final dayFrom = now.subtract(const Duration(days: 30)).toIso8601String();
+        final dayResp = await dioClient.get(
+          '/api/v1/market-data/candles',
+          queryParameters: {
+            'instrumentToken': token,
+            'timeframe': 'day',
+            'from': dayFrom,
+            'to': to,
+          },
+        );
+        if (dayResp.data is List) {
+          return Success(
+              (dayResp.data as List).whereType<Map<String, dynamic>>().toList());
+        }
+      }
+
+      return const Success([]);
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
+    }
+  }
+
+  /// Try resolving tradingsymbol and exchange from portfolio, paper trading, or signals.
+  Future<Map<String, String>?> resolveTradingSymbol(int token) async {
+    // 1. Check Kite Portfolio holdings & positions
+    try {
+      final portResp = await dioClient.get('/api/v1/kite/portfolio');
+      if (portResp.data is Map<String, dynamic>) {
+        final map = portResp.data as Map<String, dynamic>;
+        final holdings = (map['holdings'] as List?) ?? [];
+        for (final h in holdings) {
+          if (h is Map && (h['instrument_token'] ?? h['instrumentToken']) == token) {
+            final sym = h['tradingsymbol']?.toString();
+            if (sym != null && sym.isNotEmpty && !sym.startsWith('Token ')) {
+              return {
+                'symbol': sym,
+                'exchange': h['exchange']?.toString() ?? 'NSE',
+              };
+            }
+          }
+        }
+        final positions = (map['netPositions'] ?? map['positions'] as List?) ?? [];
+        for (final p in positions) {
+          if (p is Map && (p['instrument_token'] ?? p['instrumentToken']) == token) {
+            final sym = p['tradingsymbol']?.toString();
+            if (sym != null && sym.isNotEmpty && !sym.startsWith('Token ')) {
+              return {
+                'symbol': sym,
+                'exchange': p['exchange']?.toString() ?? 'NSE',
+              };
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Check Paper Positions
+    try {
+      final posResp = await dioClient.get('/api/v1/paper/positions');
+      if (posResp.data is List) {
+        for (final p in posResp.data as List) {
+          if (p is Map && (p['instrumentToken'] ?? p['instrument_token']) == token) {
+            final sym = p['tradingsymbol']?.toString();
+            if (sym != null && sym.isNotEmpty && !sym.startsWith('Token ')) {
+              return {
+                'symbol': sym,
+                'exchange': p['exchange']?.toString() ?? 'NSE',
+              };
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 3. Check Paper Orders
+    try {
+      final ordResp = await dioClient.get('/api/v1/paper/orders');
+      if (ordResp.data is List) {
+        for (final ord in ordResp.data as List) {
+          if (ord is Map && (ord['instrumentToken'] ?? ord['instrument_token']) == token) {
+            final sym = ord['tradingsymbol']?.toString();
+            if (sym != null && sym.isNotEmpty && !sym.startsWith('Token ')) {
+              return {
+                'symbol': sym,
+                'exchange': ord['exchange']?.toString() ?? 'NSE',
+              };
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 4. Check Strategy Signal
+    try {
+      final resp = await dioClient.get(
+        '/api/v1/strategies/ema-crossover/signal',
+        queryParameters: {
+          'instrumentToken': token,
+          'timeframe': '5minute',
+        },
+      );
+      if (resp.statusCode == 200 && resp.data is Map) {
+        final sym = resp.data['tradingsymbol'] as String?;
+        if (sym != null && sym.isNotEmpty && !sym.startsWith('Token ')) {
+          return {
+            'symbol': sym,
+            'exchange': resp.data['exchange']?.toString() ?? 'NSE',
+          };
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
 }

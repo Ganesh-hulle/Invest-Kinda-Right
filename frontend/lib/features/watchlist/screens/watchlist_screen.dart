@@ -19,6 +19,14 @@ class WatchlistScreen extends StatefulWidget {
 }
 
 class _WatchlistScreenState extends State<WatchlistScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WatchlistProvider>().refreshQuotes();
+    });
+  }
+
   Future<void> _onRefresh() async {
     await context.read<WatchlistProvider>().refreshQuotes();
   }
@@ -189,6 +197,37 @@ class _WatchlistRow extends StatelessWidget {
                   strokeWidth: 2,
                   color: AppColors.primary,
                 ),
+              )
+            else if (item.lastPrice <= 0)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    '₹ --',
+                    style: TextStyle(
+                      color: AppColors.onSurfaceMuted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant2,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'Awaiting Feed',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.onSurfaceMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               )
             else
               Column(

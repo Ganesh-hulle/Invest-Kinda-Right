@@ -9,6 +9,8 @@ import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/pnl_chip.dart';
 import '../../../shared/widgets/error_snackbar.dart';
 import '../model/watchlist_models.dart';
+import '../provider/watchlist_provider.dart';
+import '../widgets/live_ticker_price.dart';
 import '../../orders/model/order_models.dart';
 import '../../orders/provider/orders_provider.dart';
 
@@ -138,7 +140,11 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0.00');
-    final item = widget.item;
+    final liveItems = context.watch<WatchlistProvider>().items;
+    final item = liveItems.firstWhere(
+      (i) => i.instrumentToken == widget.item.instrumentToken,
+      orElse: () => widget.item,
+    );
 
     return Container(
       decoration: const BoxDecoration(
@@ -208,15 +214,17 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
 
               const SizedBox(height: 16),
 
-              // Price row
+              // Price row with Live Flash
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '₹${fmt.format(item.lastPrice)}',
+                  LiveTickerPrice(
+                    price: item.lastPrice,
+                    previousPrice: item.previousPrice,
+                    direction: item.priceDirection,
                     style: const TextStyle(
                       color: AppColors.onSurface,
-                      fontSize: 32,
+                      fontSize: 30,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
                     ),
@@ -229,16 +237,19 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                   ),
                 ],
               ),
-              Text(
-                '${item.change >= 0 ? '+' : ''}${fmt.format(item.change)} today',
-                style: TextStyle(
-                  color: item.change >= 0 ? AppColors.buy : AppColors.sell,
-                  fontSize: 13,
+              Padding(
+                padding: const EdgeInsets.only(left: 4, top: 2),
+                child: Text(
+                  '${item.change >= 0 ? '+' : ''}${fmt.format(item.change)} today',
+                  style: TextStyle(
+                    color: item.change >= 0 ? AppColors.buy : AppColors.sell,
+                    fontSize: 13,
+                  ),
                 ),
               ),
 
               const SizedBox(height: 24),
-              Divider(color: AppColors.divider),
+              const Divider(color: AppColors.divider),
               const SizedBox(height: 16),
 
               // Indicators panel

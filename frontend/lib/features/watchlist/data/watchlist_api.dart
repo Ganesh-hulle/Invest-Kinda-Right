@@ -54,6 +54,37 @@ class WatchlistApi {
     }
   }
 
+  /// Connects the backend Kite market-data ticker stream for the given tokens.
+  Future<Result<bool>> connectKiteMarketData(List<int> tokens) async {
+    if (tokens.isEmpty) return const Success(true);
+    try {
+      await dioClient.post(
+        '/api/v1/kite/market-data/connect',
+        data: {'instrumentTokens': tokens},
+      );
+      return const Success(true);
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
+    }
+  }
+
+  /// Returns status of backend Kite market-data connection.
+  Future<Result<Map<String, dynamic>>> getKiteMarketDataStatus() async {
+    try {
+      final response = await dioClient.get('/api/v1/kite/market-data/status');
+      if (response.data is Map<String, dynamic>) {
+        return Success(response.data as Map<String, dynamic>);
+      }
+      return const Success({});
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
+    }
+  }
+
   /// Fetch recent candles for an instrument token from market-data engine.
   /// Uses ISO 8601 UTC formatting so Spring Boot parses OffsetDateTime properly.
   Future<Result<List<Map<String, dynamic>>>> getRecentCandles(

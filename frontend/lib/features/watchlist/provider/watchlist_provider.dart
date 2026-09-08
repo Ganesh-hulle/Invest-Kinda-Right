@@ -9,6 +9,8 @@ import '../../../core/websocket/market_ws_service.dart';
 import '../data/watchlist_api.dart';
 import '../model/watchlist_models.dart';
 
+enum WatchlistFilter { all, gainers, losers, alphabetical }
+
 class WatchlistProvider extends ChangeNotifier {
   final DioClient dioClient;
   final SecureStorage secureStorage;
@@ -18,7 +20,25 @@ class WatchlistProvider extends ChangeNotifier {
 
   List<WatchlistItem> _items = [];
   bool _isLoading = false;
+  bool _isConnectingKite = false;
+  String? _kiteFeedStatus;
   StreamSubscription<QuoteUpdate>? _quoteSub;
+  WatchlistFilter _currentFilter = WatchlistFilter.all;
+
+  // Zerodha-style top market indices
+  WatchlistItem _nifty50 = const WatchlistItem(
+    instrumentToken: 256265,
+    tradingsymbol: 'NIFTY 50',
+    exchange: 'NSE',
+    lastPrice: 0.0,
+  );
+
+  WatchlistItem _sensex = const WatchlistItem(
+    instrumentToken: 265,
+    tradingsymbol: 'SENSEX',
+    exchange: 'BSE',
+    lastPrice: 0.0,
+  );
 
   WatchlistProvider({
     required this.dioClient,
@@ -31,10 +51,48 @@ class WatchlistProvider extends ChangeNotifier {
 
   List<WatchlistItem> get items => List.unmodifiable(_items);
   bool get isLoading => _isLoading;
+  bool get isConnectingKite => _isConnectingKite;
+  String? get kiteFeedStatus => _kiteFeedStatus;
+  WatchlistFilter get currentFilter => _currentFilter;
+  WatchlistItem get nifty50 => _nifty50;
+  WatchlistItem get sensex => _sensex;
 
   /// Returns instrument tokens for all watchlist items (used by dashboard EMA signals).
   List<int> get instrumentTokens =>
       _items.map((i) => i.instrumentToken).toList();
+
+  /// Returns all tokens including market indices for comprehensive streaming.
+  List<int> get allStreamingTokens => <int>{
+        ...instrumentTokens,
+        _nifty50.instrumentToken,
+        _sensex.instrumentToken,
+      }.toList();
+
+  /// Filtered and sorted watchlist items according to current filter.
+  List<WatchlistItem> get filteredItems {
+    switch (_currentFilter) {
+      case WatchlistFilter.gainers:
+        final gainers = _items.where((i) => i.change > 0).toList();
+        gainers.sort((a, b) => b.changePercent.compareTo(a.changePercent));
+        return gainers;
+      case WatchlistFilter.losers:
+        final losers = _items.where((i) => i.change < 0).toList();
+        losers.sort((a, b) => a.changePercent.compareTo(b.changePercent));
+        return losers;
+      case WatchlistFilter.alphabetical:
+        final sorted = List<WatchlistItem>.from(_items);
+        sorted.sort((a, b) => a.tradingsymbol.compareTo(b.tradingsymbol));
+        return sorted;
+      case WatchlistFilter.all:
+        return List.unmodifiable(_items);
+    }
+  }
+
+  void setFilter(WatchlistFilter filter) {
+    if (_currentFilter == filter) return;
+    _currentFilter = filter;
+    notifyListeners();
+  }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -75,8 +133,55 @@ class WatchlistProvider extends ChangeNotifier {
       notifyListeners();
     }
 
+    await onWatchlistOpened();
+  }
+
+  /// Primary orchestration invoked whenever the user opens the Watchlist section.
+  /// Connects to existing live market data APIs: REST snapshot quotes, internal
+  /// market WebSocket, and backend Kite ticker stream.
+  Future<void> onWatchlistOpened() async {
     _subscribeToWsStream();
-    _connectWsIfNeeded();
+
+    final tokens = allStreamingTokens;
+
+    // 1. Fetch REST snapshot quotes immediately so prices appear right away
+    unawaited(refreshQuotes());
+
+    // 2. Connect and subscribe the internal WebSocket
+    if (!wsService.isConnected) {
+      unawaited(wsService.connect(tokens));
+    } else {
+      wsService.subscribe(tokens);
+    }
+
+    // 3. Connect backend Kite market data feed for live binary ticks
+    unawaited(_connectKiteFeed(tokens));
+  }
+
+  Future<void> _connectKiteFeed(List<int> tokens) async {
+    if (tokens.isEmpty) return;
+    _isConnectingKite = true;
+    notifyListeners();
+
+    try {
+      final result = await _api.connectKiteMarketData(tokens);
+      result.fold(
+        onSuccess: (_) {
+          _kiteFeedStatus = 'CONNECTED';
+          debugPrint('[Watchlist] Kite market data feed connected for ${tokens.length} instruments');
+        },
+        onFailure: (f) {
+          _kiteFeedStatus = 'DISCONNECTED';
+          debugPrint('[Watchlist] Kite market data feed notice: ${f.message}');
+        },
+      );
+    } catch (e) {
+      _kiteFeedStatus = 'ERROR';
+      debugPrint('[Watchlist] Kite market data connect error: $e');
+    } finally {
+      _isConnectingKite = false;
+      notifyListeners();
+    }
   }
 
   void _subscribeToWsStream() {
@@ -84,23 +189,112 @@ class WatchlistProvider extends ChangeNotifier {
     _quoteSub = wsService.quoteStream.listen(_onQuoteUpdate);
   }
 
-  void _connectWsIfNeeded() {
-    if (_items.isEmpty) return;
-    if (!wsService.isConnected) {
-      wsService.connect(instrumentTokens);
-    } else {
-      wsService.subscribe(instrumentTokens);
-    }
-  }
-
   // ── Real-time updates ─────────────────────────────────────────────────────
 
   void _onQuoteUpdate(QuoteUpdate update) {
-    final idx =
-        _items.indexWhere((i) => i.instrumentToken == update.instrumentToken);
+    final token = update.instrumentToken;
+    final newPrice = update.lastPrice;
+
+    // Handle NIFTY 50 index update
+    if (token == _nifty50.instrumentToken) {
+      final oldPrice = _nifty50.lastPrice;
+      PriceDirection dir = PriceDirection.none;
+      if (oldPrice > 0) {
+        if (newPrice > oldPrice) dir = PriceDirection.up;
+        if (newPrice < oldPrice) dir = PriceDirection.down;
+      }
+
+      double close = _nifty50.closePrice;
+      if (close <= 0) {
+        close = (_nifty50.change != 0 && oldPrice > 0)
+            ? (oldPrice - _nifty50.change)
+            : newPrice;
+      }
+
+      final change = update.change ??
+          (close > 0 ? (newPrice - close) : _nifty50.change);
+      final changePercent = update.changePercent ??
+          (close > 0 ? (change / close) * 100.0 : _nifty50.changePercent);
+
+      _nifty50 = _nifty50.copyWith(
+        lastPrice: newPrice,
+        closePrice: close,
+        change: change,
+        changePercent: changePercent,
+        previousPrice: oldPrice > 0 ? oldPrice : newPrice,
+        priceDirection: dir,
+        lastUpdated: DateTime.now(),
+      );
+      notifyListeners();
+      return;
+    }
+
+    // Handle SENSEX index update
+    if (token == _sensex.instrumentToken) {
+      final oldPrice = _sensex.lastPrice;
+      PriceDirection dir = PriceDirection.none;
+      if (oldPrice > 0) {
+        if (newPrice > oldPrice) dir = PriceDirection.up;
+        if (newPrice < oldPrice) dir = PriceDirection.down;
+      }
+
+      double close = _sensex.closePrice;
+      if (close <= 0) {
+        close = (_sensex.change != 0 && oldPrice > 0)
+            ? (oldPrice - _sensex.change)
+            : newPrice;
+      }
+
+      final change = update.change ??
+          (close > 0 ? (newPrice - close) : _sensex.change);
+      final changePercent = update.changePercent ??
+          (close > 0 ? (change / close) * 100.0 : _sensex.changePercent);
+
+      _sensex = _sensex.copyWith(
+        lastPrice: newPrice,
+        closePrice: close,
+        change: change,
+        changePercent: changePercent,
+        previousPrice: oldPrice > 0 ? oldPrice : newPrice,
+        priceDirection: dir,
+        lastUpdated: DateTime.now(),
+      );
+      notifyListeners();
+      return;
+    }
+
+    // Handle regular watchlist item update
+    final idx = _items.indexWhere((i) => i.instrumentToken == token);
     if (idx == -1) return;
 
     final old = _items[idx];
+    final oldPrice = old.lastPrice;
+
+    // Detect price movement direction for Zerodha flash animation
+    PriceDirection dir = PriceDirection.none;
+    if (oldPrice > 0) {
+      if (newPrice > oldPrice) {
+        dir = PriceDirection.up;
+      } else if (newPrice < oldPrice) {
+        dir = PriceDirection.down;
+      }
+    }
+
+    // Determine close/base price to compute dynamic change & change% on raw ticks
+    double close = old.closePrice;
+    if (close <= 0) {
+      if (old.change != 0 && oldPrice > 0) {
+        close = oldPrice - old.change;
+      } else {
+        close = newPrice;
+      }
+    }
+
+    final change = update.change ??
+        (close > 0 ? (newPrice - close) : old.change);
+    final changePercent = update.changePercent ??
+        (close > 0 ? (change / close) * 100.0 : old.changePercent);
+
     final hasValidSymbol = update.tradingsymbol != null &&
         update.tradingsymbol!.isNotEmpty &&
         update.tradingsymbol != 'Loading...';
@@ -110,9 +304,13 @@ class WatchlistProvider extends ChangeNotifier {
       exchange: (update.exchange != null && update.exchange!.isNotEmpty)
           ? update.exchange!
           : old.exchange,
-      lastPrice: update.lastPrice,
-      change: update.change ?? old.change,
-      changePercent: update.changePercent ?? old.changePercent,
+      lastPrice: newPrice,
+      closePrice: close,
+      change: change,
+      changePercent: changePercent,
+      previousPrice: oldPrice > 0 ? oldPrice : newPrice,
+      priceDirection: dir,
+      lastUpdated: DateTime.now(),
       isLoading: false,
     );
 
@@ -160,11 +358,8 @@ class WatchlistProvider extends ChangeNotifier {
     );
 
     // Subscribe to WS
-    if (wsService.isConnected) {
-      wsService.subscribe([instrument.instrumentToken]);
-    } else {
-      wsService.connect(instrumentTokens);
-    }
+    wsService.subscribe([instrument.instrumentToken]);
+    unawaited(_connectKiteFeed(allStreamingTokens));
   }
 
   Future<void> removeInstrument(int token) async {
@@ -175,16 +370,17 @@ class WatchlistProvider extends ChangeNotifier {
 
   Future<void> reconnectWs() async {
     _subscribeToWsStream();
-    if (_items.isNotEmpty) {
-      wsService.disconnect();
-      await wsService.connect(instrumentTokens);
+    final tokens = allStreamingTokens;
+    if (tokens.isNotEmpty) {
+      await wsService.forceReconnect();
+      unawaited(_connectKiteFeed(tokens));
     }
     await refreshQuotes();
   }
 
   Future<void> refreshQuotes() async {
-    if (_items.isEmpty) return;
-    final tokens = _items.map((i) => i.instrumentToken).toList();
+    final tokens = allStreamingTokens;
+    if (tokens.isEmpty) return;
     final result = await _api.getQuotes(tokens);
     result.fold(
       onSuccess: (quotes) {
@@ -335,6 +531,46 @@ class WatchlistProvider extends ChangeNotifier {
         (q['instrument_token'] as num?)?.toInt();
     if (token == null) return;
 
+    final incomingPrice = (q['lastPrice'] as num?)?.toDouble() ??
+        (q['last_price'] as num?)?.toDouble() ??
+        0.0;
+
+    // Check if it's NIFTY 50
+    if (token == _nifty50.instrumentToken && incomingPrice > 0) {
+      final change = (q['change'] as num?)?.toDouble() ?? _nifty50.change;
+      final changePercent = (q['changePercent'] as num?)?.toDouble() ??
+          (q['change_percent'] as num?)?.toDouble() ??
+          _nifty50.changePercent;
+      final close = (change != 0) ? (incomingPrice - change) : incomingPrice;
+
+      _nifty50 = _nifty50.copyWith(
+        lastPrice: incomingPrice,
+        closePrice: close,
+        change: change,
+        changePercent: changePercent,
+        lastUpdated: DateTime.now(),
+      );
+      return;
+    }
+
+    // Check if it's SENSEX
+    if (token == _sensex.instrumentToken && incomingPrice > 0) {
+      final change = (q['change'] as num?)?.toDouble() ?? _sensex.change;
+      final changePercent = (q['changePercent'] as num?)?.toDouble() ??
+          (q['change_percent'] as num?)?.toDouble() ??
+          _sensex.changePercent;
+      final close = (change != 0) ? (incomingPrice - change) : incomingPrice;
+
+      _sensex = _sensex.copyWith(
+        lastPrice: incomingPrice,
+        closePrice: close,
+        change: change,
+        changePercent: changePercent,
+        lastUpdated: DateTime.now(),
+      );
+      return;
+    }
+
     final idx = _items.indexWhere((i) => i.instrumentToken == token);
     if (idx == -1) return;
 
@@ -352,24 +588,28 @@ class WatchlistProvider extends ChangeNotifier {
         ? serverExchange
         : old.exchange;
 
-    final incomingPrice = (q['lastPrice'] as num?)?.toDouble() ??
-        (q['last_price'] as num?)?.toDouble();
-    final lastPrice = (incomingPrice != null && incomingPrice > 0)
-        ? incomingPrice
-        : old.lastPrice;
-
+    final lastPrice = (incomingPrice > 0) ? incomingPrice : old.lastPrice;
     final change = (q['change'] as num?)?.toDouble() ?? old.change;
     final changePercent = (q['changePercent'] as num?)?.toDouble() ??
         (q['change_percent'] as num?)?.toDouble() ??
         old.changePercent;
+
+    double close = (q['closePrice'] as num?)?.toDouble() ?? old.closePrice;
+    if (close <= 0 && change != 0 && lastPrice > 0) {
+      close = lastPrice - change;
+    }
 
     _items[idx] = WatchlistItem(
       instrumentToken: token,
       tradingsymbol: tradingsymbol,
       exchange: exchange,
       lastPrice: lastPrice,
+      closePrice: close > 0 ? close : lastPrice,
       change: change,
       changePercent: changePercent,
+      previousPrice: old.lastPrice,
+      priceDirection: PriceDirection.none,
+      lastUpdated: DateTime.now(),
       isLoading: false,
     );
   }

@@ -98,7 +98,7 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
           autoFocus: true,
           backgroundColor: WidgetStateProperty.all(AppColors.surfaceVariant),
           shadowColor: WidgetStateProperty.all(Colors.transparent),
-          side: WidgetStateProperty.all(BorderSide(color: AppColors.divider)),
+          side: WidgetStateProperty.all(const BorderSide(color: AppColors.divider)),
           hintStyle: WidgetStateProperty.all(
             const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 14),
           ),
@@ -144,7 +144,7 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.search_off_rounded,
+                  const Icon(Icons.search_off_rounded,
                       size: 56, color: AppColors.onSurfaceMuted),
                   const SizedBox(height: 16),
                   Text(
@@ -164,14 +164,14 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
           }
 
           if (query.length < 2) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.manage_search_rounded,
                       size: 56, color: AppColors.onSurfaceMuted),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: 16),
+                  Text(
                     'Search for stocks, ETFs, F&O',
                     style: TextStyle(
                         color: AppColors.onSurfaceMuted, fontSize: 14),
@@ -187,7 +187,7 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
           return ListView.separated(
             itemCount: _results.length,
             separatorBuilder: (_, __) =>
-                Divider(height: 1, color: AppColors.divider),
+                const Divider(height: 1, color: AppColors.divider),
             itemBuilder: (context, index) {
               final instrument = _results[index];
               final alreadyAdded =

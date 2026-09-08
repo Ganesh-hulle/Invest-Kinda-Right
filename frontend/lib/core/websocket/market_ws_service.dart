@@ -47,10 +47,17 @@ class MarketWsService extends ChangeNotifier {
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _sub;
+  Timer? _reconnectTimer;
 
   WsConnectionState _state = WsConnectionState.disconnected;
   String? _lastError;
   String _wsBaseUrl = 'ws://127.0.0.1:8080';
+  DateTime? _lastTickAt;
+  bool _explicitlyDisconnected = false;
+  int _reconnectAttempts = 0;
+
+  // Set of currently subscribed instrument tokens for auto-resubscription
+  final Set<int> _subscribedTokens = {};
 
   // Stream controller for quote updates
   final _quoteController = StreamController<QuoteUpdate>.broadcast();
@@ -63,17 +70,27 @@ class MarketWsService extends ChangeNotifier {
   WsConnectionState get state => _state;
   String? get lastError => _lastError;
   bool get isConnected => _state == WsConnectionState.connected;
+  DateTime? get lastTickAt => _lastTickAt;
+  Set<int> get subscribedTokens => Set.unmodifiable(_subscribedTokens);
   Stream<QuoteUpdate> get quoteStream => _quoteController.stream;
   Map<int, QuoteUpdate> get latestQuotes => Map.unmodifiable(_latestQuotes);
 
   void updateWsBaseUrl(String url) => _wsBaseUrl = url;
 
   Future<void> connect(List<int> instrumentTokens) async {
-    if (_state == WsConnectionState.connected ||
-        _state == WsConnectionState.connecting) {
+    _explicitlyDisconnected = false;
+    _subscribedTokens.addAll(instrumentTokens);
+
+    if (_state == WsConnectionState.connected) {
+      if (instrumentTokens.isNotEmpty) {
+        _sendSubscribe(instrumentTokens);
+      }
       return;
     }
 
+    if (_state == WsConnectionState.connecting) return;
+
+    _reconnectTimer?.cancel();
     _setState(WsConnectionState.connecting);
     _lastError = null;
 
@@ -85,43 +102,95 @@ class MarketWsService extends ChangeNotifier {
       }
 
       final uri = Uri.parse('$_wsBaseUrl/ws/market?access_token=$token');
-      _channel = WebSocketChannel.connect(uri);
+      final channel = WebSocketChannel.connect(uri);
+      await channel.ready;
 
-      await _channel!.ready;
+      _channel = channel;
+      _reconnectAttempts = 0;
       _setState(WsConnectionState.connected);
 
-      // Subscribe to instrument tokens
-      _channel!.sink.add(jsonEncode({
-        'action': 'subscribe',
-        'instrumentTokens': instrumentTokens,
-      }));
+      // Subscribe to all tracked tokens
+      if (_subscribedTokens.isNotEmpty) {
+        _sendSubscribe(_subscribedTokens.toList());
+      }
 
       _sub = _channel!.stream.listen(
         _onMessage,
-        onError: (e) => _setError(e.toString()),
+        onError: (e) {
+          debugPrint('[WS] Error: $e');
+          _setError(e.toString());
+          _scheduleReconnect();
+        },
         onDone: () {
+          debugPrint('[WS] Connection closed');
           if (_state != WsConnectionState.disconnected) {
             _setState(WsConnectionState.disconnected);
           }
+          _scheduleReconnect();
         },
       );
     } catch (e) {
+      debugPrint('[WS] Connection failure: $e');
       _setError(e.toString());
+      _scheduleReconnect();
     }
   }
 
   void subscribe(List<int> instrumentTokens) {
-    if (!isConnected) return;
-    _channel?.sink.add(jsonEncode({
-      'action': 'subscribe',
-      'instrumentTokens': instrumentTokens,
-    }));
+    if (instrumentTokens.isEmpty) return;
+    _subscribedTokens.addAll(instrumentTokens);
+    if (isConnected) {
+      _sendSubscribe(instrumentTokens);
+    } else if (!_explicitlyDisconnected) {
+      connect(_subscribedTokens.toList());
+    }
+  }
+
+  void _sendSubscribe(List<int> tokens) {
+    if (_channel == null || !isConnected || tokens.isEmpty) return;
+    try {
+      _channel!.sink.add(jsonEncode({
+        'action': 'subscribe',
+        'instrumentTokens': tokens,
+      }));
+    } catch (e) {
+      debugPrint('[WS] Error sending subscribe: $e');
+    }
+  }
+
+  Future<void> forceReconnect() async {
+    disconnect();
+    _explicitlyDisconnected = false;
+    await connect(_subscribedTokens.toList());
   }
 
   void disconnect() {
+    _explicitlyDisconnected = true;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
     _sub?.cancel();
-    _channel?.sink.close();
+    _sub = null;
+    try {
+      _channel?.sink.close();
+    } catch (_) {}
+    _channel = null;
     _setState(WsConnectionState.disconnected);
+  }
+
+  void _scheduleReconnect() {
+    if (_explicitlyDisconnected) return;
+    _reconnectTimer?.cancel();
+
+    // Exponential backoff: 2s, 4s, 8s, up to 15s max
+    final delaySeconds = (2 * (1 << _reconnectAttempts)).clamp(2, 15);
+    _reconnectAttempts++;
+
+    debugPrint('[WS] Scheduling reconnect attempt $_reconnectAttempts in ${delaySeconds}s');
+    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
+      if (!_explicitlyDisconnected && !isConnected) {
+        connect(_subscribedTokens.toList());
+      }
+    });
   }
 
   void _onMessage(dynamic raw) {
@@ -131,6 +200,8 @@ class MarketWsService extends ChangeNotifier {
       if (json.containsKey('status')) return;
 
       final update = QuoteUpdate.fromJson(json);
+      _lastTickAt = DateTime.now();
+      _reconnectAttempts = 0;
       _latestQuotes[update.instrumentToken] = update;
       _quoteController.add(update);
     } catch (e) {
@@ -151,6 +222,8 @@ class MarketWsService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _explicitlyDisconnected = true;
+    _reconnectTimer?.cancel();
     disconnect();
     _quoteController.close();
     super.dispose();

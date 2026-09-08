@@ -11,6 +11,7 @@ import '../provider/watchlist_provider.dart';
 import '../widgets/live_ticker_price.dart';
 import '../widgets/market_indices_bar.dart';
 import '../widgets/live_market_status_pill.dart';
+import '../widgets/indicator_guide_sheet.dart';
 import 'instrument_detail_sheet.dart';
 
 class WatchlistScreen extends StatefulWidget {
@@ -117,7 +118,12 @@ class _WatchlistScreenState extends State<WatchlistScreen>
         ),
         actions: [
           const LiveMarketStatusPill(),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded),
+            tooltip: 'Indicator & Signal Guide',
+            onPressed: () => showIndicatorGuideSheet(context),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh Market Feed',

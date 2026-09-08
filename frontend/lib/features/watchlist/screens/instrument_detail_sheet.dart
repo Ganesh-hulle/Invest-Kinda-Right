@@ -3,14 +3,20 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/result.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/pnl_chip.dart';
 import '../../../shared/widgets/error_snackbar.dart';
+import '../data/watchlist_api.dart';
 import '../model/watchlist_models.dart';
 import '../provider/watchlist_provider.dart';
 import '../widgets/live_ticker_price.dart';
+import '../widgets/indicator_guide_sheet.dart';
+import '../widgets/signal_strength_slider.dart';
 import '../../orders/model/order_models.dart';
 import '../../orders/provider/orders_provider.dart';
 
@@ -23,6 +29,8 @@ class _IndicatorData {
   final double rsi14;
   final double macdLine;
   final double macdSignal;
+  final double superTrend;
+  final double atr14;
 
   const _IndicatorData({
     required this.ema9,
@@ -31,6 +39,8 @@ class _IndicatorData {
     required this.rsi14,
     required this.macdLine,
     required this.macdSignal,
+    this.superTrend = 0.0,
+    this.atr14 = 0.0,
   });
 
   factory _IndicatorData.fromJson(Map<String, dynamic> json) {
@@ -39,11 +49,18 @@ class _IndicatorData {
       ema20: (json['ema20'] as num?)?.toDouble() ?? 0.0,
       vwap: (json['vwap'] as num?)?.toDouble() ?? 0.0,
       rsi14: (json['rsi14'] as num?)?.toDouble() ?? 0.0,
-      macdLine: (json['macdLine'] as num?)?.toDouble() ??
+      macdLine: (json['macd'] as num?)?.toDouble() ??
+          (json['macdLine'] as num?)?.toDouble() ??
           (json['macd_line'] as num?)?.toDouble() ??
           0.0,
       macdSignal: (json['macdSignal'] as num?)?.toDouble() ??
           (json['macd_signal'] as num?)?.toDouble() ??
+          0.0,
+      superTrend: (json['superTrend'] as num?)?.toDouble() ??
+          (json['super_trend'] as num?)?.toDouble() ??
+          0.0,
+      atr14: (json['atr14'] as num?)?.toDouble() ??
+          (json['atr_14'] as num?)?.toDouble() ??
           0.0,
     );
   }
@@ -65,8 +82,10 @@ class InstrumentDetailSheet extends StatefulWidget {
 class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
   _IndicatorData? _indicators;
   _SignalType _signal = _SignalType.neutral;
+  String _strategySignalStr = 'NEUTRAL';
   bool _isLoadingIndicators = true;
   String? _indicatorError;
+  bool _isFetchingHistory = false;
 
   @override
   void initState() {
@@ -75,6 +94,12 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
   }
 
   Future<void> _fetchIndicators() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingIndicators = true;
+        _indicatorError = null;
+      });
+    }
     final dioClient = context.read<DioClient>();
     try {
       final response = await dioClient.get(
@@ -87,6 +112,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
       final data = response.data as Map<String, dynamic>;
       final indicators = _IndicatorData.fromJson(data);
       _SignalType signal = _SignalType.neutral;
+      String strategySignal = 'NEUTRAL';
 
       // Fetch EMA crossover signal
       try {
@@ -100,6 +126,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
         final signalData = signalResp.data as Map<String, dynamic>;
         final signalStr =
             signalData['signal']?.toString().toUpperCase() ?? 'NONE';
+        strategySignal = signalStr;
         if (signalStr == 'BUY') signal = _SignalType.buy;
         if (signalStr == 'SELL') signal = _SignalType.sell;
       } catch (_) {}
@@ -108,6 +135,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
         setState(() {
           _indicators = indicators;
           _signal = signal;
+          _strategySignalStr = strategySignal;
           _isLoadingIndicators = false;
         });
       }
@@ -126,6 +154,87 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
         });
       }
     }
+  }
+
+  Future<void> _autoFetchHistory() async {
+    if (_isFetchingHistory) return;
+    setState(() => _isFetchingHistory = true);
+
+    try {
+      final dioClient = context.read<DioClient>();
+      final api = WatchlistApi(dioClient: dioClient);
+
+      final result = await api.fetchAndStoreHistoricalCandles(
+        widget.item.instrumentToken,
+        interval: '5minute',
+        daysBack: 21,
+      );
+
+      if (!mounted) return;
+
+      switch (result) {
+        case Success(:final data):
+          showSuccessSnackbar(
+            context,
+            'Synced ${data.length} 5-min candles for ${widget.item.tradingsymbol}. Indicators updated!',
+          );
+          await _fetchIndicators();
+        case Failure(:final failure):
+          final errorMsg = failure.message;
+          if (errorMsg.toLowerCase().contains('kite') &&
+              (errorMsg.toLowerCase().contains('not connected') ||
+                  errorMsg.toLowerCase().contains('connect'))) {
+            _showKiteConnectDialog();
+          } else {
+            showErrorSnackbar(context, errorMsg);
+          }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackbar(context, 'Failed to fetch historical data: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isFetchingHistory = false);
+      }
+    }
+  }
+
+  void _showKiteConnectDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceVariant,
+        title: const Row(
+          children: [
+            Icon(Icons.link_off_rounded, color: AppColors.warning),
+            SizedBox(width: 8),
+            Text(
+              'Kite Not Connected',
+              style: TextStyle(color: AppColors.onSurface, fontSize: 18),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Zerodha Kite account is required to fetch historical candle data from Kite Connect API. Would you like to connect your Kite account now?',
+          style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColors.onSurfaceMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.push('/kite-connect');
+            },
+            child: const Text('Connect Kite'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showPlaceOrderSheet() {
@@ -248,21 +357,87 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              if (_indicators != null) ...[
+                const SizedBox(height: 16),
+                SignalStrengthSlider(
+                  summary: IndicatorSignalSummary.compute(
+                    lastPrice: item.lastPrice,
+                    ema9: _indicators!.ema9,
+                    ema20: _indicators!.ema20,
+                    vwap: _indicators!.vwap,
+                    rsi14: _indicators!.rsi14,
+                    macdLine: _indicators!.macdLine,
+                    macdSignal: _indicators!.macdSignal,
+                    superTrend: _indicators!.superTrend,
+                    strategySignal: _strategySignalStr,
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 20),
               const Divider(color: AppColors.divider),
               const SizedBox(height: 16),
 
               // Indicators panel
-              const Text(
-                'INDICATORS · 5MIN',
-                style: TextStyle(
-                  color: AppColors.onSurfaceMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'INDICATORS · 5MIN',
+                        style: TextStyle(
+                          color: AppColors.onSurfaceMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(
+                          Icons.info_outline_rounded,
+                          size: 15,
+                          color: AppColors.onSurfaceMuted,
+                        ),
+                        tooltip: 'Indicator & Signal Guide',
+                        onPressed: () => showIndicatorGuideSheet(context),
+                      ),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: _isFetchingHistory ? null : _autoFetchHistory,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                    ),
+                    icon: _isFetchingHistory
+                        ? const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        : const Icon(Icons.sync_rounded,
+                            size: 14, color: AppColors.primary),
+                    label: Text(
+                      _isFetchingHistory ? 'Syncing...' : 'Sync 5m History',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               if (_isLoadingIndicators)
                 const Center(
@@ -273,26 +448,101 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                   ),
                 )
               else if (_indicatorError != null)
-                Center(
-                  child: Text(
-                    _indicatorError!,
-                    style: const TextStyle(
-                        color: AppColors.onSurfaceMuted, fontSize: 13),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 16, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant2,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.divider),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.candlestick_chart_outlined,
+                        size: 30,
+                        color: AppColors.onSurfaceMuted,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _indicatorError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.onSurfaceMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ElevatedButton.icon(
+                        onPressed: _isFetchingHistory ? null : _autoFetchHistory,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary.withAlpha(30),
+                          foregroundColor: AppColors.primary,
+                          elevation: 0,
+                          side: const BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                        ),
+                        icon: _isFetchingHistory
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primary,
+                                ),
+                              )
+                            : const Icon(Icons.cloud_download_rounded,
+                                size: 16),
+                        label: Text(
+                          _isFetchingHistory
+                              ? 'Fetching 5m History...'
+                              : 'Auto-Fetch 5m History & Signals',
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else if (_indicators != null)
-                _IndicatorPanel(indicators: _indicators!),
+                _IndicatorPanel(
+                  indicators: _indicators!,
+                  lastPrice: item.lastPrice,
+                ),
 
               const SizedBox(height: 24),
 
-              // Paper Trade button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _showPlaceOrderSheet,
-                  icon: const Icon(Icons.add_chart_rounded),
-                  label: const Text('Paper Trade'),
-                ),
+              // Action buttons: Auto-Fetch 5m + Paper Trade
+              Row(
+                children: [
+                  // Expanded(
+                  //   child: OutlinedButton.icon(
+                  //     onPressed: _isFetchingHistory ? null : _autoFetchHistory,
+                  //     icon: _isFetchingHistory
+                  //         ? const SizedBox(
+                  //             width: 14,
+                  //             height: 14,
+                  //             child: CircularProgressIndicator(
+                  //               strokeWidth: 2,
+                  //               color: AppColors.primary,
+                  //             ),
+                  //           )
+                  //         : const Icon(Icons.cloud_download_outlined, size: 18),
+                  //     label: Text(
+                  //         _isFetchingHistory ? 'Syncing...' : 'Auto-Fetch 5m'),
+                  //   ),
+                  // ),
+                  // const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _showPlaceOrderSheet,
+                      icon: const Icon(Icons.add_chart_rounded, size: 18),
+                      label: const Text('Paper Trade'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -338,27 +588,82 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
 
 class _IndicatorPanel extends StatelessWidget {
   final _IndicatorData indicators;
-  const _IndicatorPanel({required this.indicators});
+  final double lastPrice;
+
+  const _IndicatorPanel({
+    required this.indicators,
+    required this.lastPrice,
+  });
 
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0.00');
+
+    // 1. EMA 9 vs EMA 20
+    final emaAction = indicators.ema9 > 0 && indicators.ema20 > 0
+        ? (indicators.ema9 > indicators.ema20
+            ? SignalAction.buy
+            : (indicators.ema9 < indicators.ema20
+                ? SignalAction.sell
+                : SignalAction.neutral))
+        : SignalAction.neutral;
+
+    // 2. Price vs VWAP
+    final vwapAction = lastPrice > 0 && indicators.vwap > 0
+        ? (lastPrice > indicators.vwap
+            ? SignalAction.buy
+            : (lastPrice < indicators.vwap
+                ? SignalAction.sell
+                : SignalAction.neutral))
+        : SignalAction.neutral;
+
+    // 3. RSI 14
+    final rsiAction = indicators.rsi14 > 0
+        ? (indicators.rsi14 < 30 || (indicators.rsi14 >= 50 && indicators.rsi14 < 70)
+            ? SignalAction.buy
+            : (indicators.rsi14 > 70 || (indicators.rsi14 > 30 && indicators.rsi14 < 50)
+                ? SignalAction.sell
+                : SignalAction.neutral))
+        : SignalAction.neutral;
+
+    // 4. MACD vs Signal
+    final macdAction = indicators.macdLine != 0 || indicators.macdSignal != 0
+        ? (indicators.macdLine > indicators.macdSignal
+            ? SignalAction.buy
+            : (indicators.macdLine < indicators.macdSignal
+                ? SignalAction.sell
+                : SignalAction.neutral))
+        : SignalAction.neutral;
+
+    // 5. SuperTrend
+    final superTrendAction = indicators.superTrend > 0 && lastPrice > 0
+        ? (lastPrice >= indicators.superTrend
+            ? SignalAction.buy
+            : SignalAction.sell)
+        : SignalAction.neutral;
+
     return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+      spacing: 10,
+      runSpacing: 10,
       children: [
         _IndicatorTile(
-            label: 'EMA 9',
-            value: fmt.format(indicators.ema9),
-            color: AppColors.ema9),
+          label: 'EMA 9',
+          value: fmt.format(indicators.ema9),
+          color: AppColors.ema9,
+          signalAction: emaAction,
+        ),
         _IndicatorTile(
-            label: 'EMA 20',
-            value: fmt.format(indicators.ema20),
-            color: AppColors.ema20),
+          label: 'EMA 20',
+          value: fmt.format(indicators.ema20),
+          color: AppColors.ema20,
+          signalAction: emaAction,
+        ),
         _IndicatorTile(
-            label: 'VWAP',
-            value: fmt.format(indicators.vwap),
-            color: AppColors.vwap),
+          label: 'VWAP',
+          value: fmt.format(indicators.vwap),
+          color: AppColors.vwap,
+          signalAction: vwapAction,
+        ),
         _IndicatorTile(
           label: 'RSI 14',
           value: indicators.rsi14.toStringAsFixed(1),
@@ -367,6 +672,7 @@ class _IndicatorPanel extends StatelessWidget {
               : indicators.rsi14 < 30
                   ? AppColors.buy
                   : AppColors.onSurface,
+          signalAction: rsiAction,
         ),
         _IndicatorTile(
           label: 'MACD',
@@ -374,12 +680,21 @@ class _IndicatorPanel extends StatelessWidget {
           color: indicators.macdLine > indicators.macdSignal
               ? AppColors.buy
               : AppColors.sell,
+          signalAction: macdAction,
         ),
         _IndicatorTile(
           label: 'Signal',
           value: indicators.macdSignal.toStringAsFixed(2),
           color: AppColors.macdSignal,
+          signalAction: macdAction,
         ),
+        if (indicators.superTrend > 0)
+          _IndicatorTile(
+            label: 'SuperTrend',
+            value: fmt.format(indicators.superTrend),
+            color: AppColors.superTrend,
+            signalAction: superTrendAction,
+          ),
       ],
     );
   }
@@ -389,28 +704,111 @@ class _IndicatorTile extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _IndicatorTile(
-      {required this.label, required this.value, required this.color});
+  final SignalAction signalAction;
+
+  const _IndicatorTile({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.signalAction = SignalAction.neutral,
+  });
 
   @override
   Widget build(BuildContext context) {
+    Color borderColor;
+    Color bgColor;
+    Color tagColor;
+    String tagLabel;
+    IconData? tagIcon;
+
+    switch (signalAction) {
+      case SignalAction.buy:
+        borderColor = AppColors.buy;
+        bgColor = AppColors.buy.withAlpha(14);
+        tagColor = AppColors.buy;
+        tagLabel = 'BUY';
+        tagIcon = Icons.arrow_upward_rounded;
+        break;
+      case SignalAction.sell:
+        borderColor = AppColors.sell;
+        bgColor = AppColors.sell.withAlpha(14);
+        tagColor = AppColors.sell;
+        tagLabel = 'SELL';
+        tagIcon = Icons.arrow_downward_rounded;
+        break;
+      case SignalAction.neutral:
+        borderColor = AppColors.divider;
+        bgColor = AppColors.surfaceVariant2;
+        tagColor = AppColors.onSurfaceMuted;
+        tagLabel = '—';
+        tagIcon = null;
+        break;
+    }
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final tileWidth = (screenWidth - 60) / 3;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      width: tileWidth > 90 ? tileWidth : null,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant2,
+        color: bgColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(
+          color: borderColor,
+          width: signalAction == SignalAction.neutral ? 1.0 : 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.onSurfaceMuted, fontSize: 10)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.onSurfaceMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: tagColor.withAlpha(25),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (tagIcon != null) ...[
+                      Icon(tagIcon, size: 8, color: tagColor),
+                      const SizedBox(width: 1),
+                    ],
+                    Text(
+                      tagLabel,
+                      style: TextStyle(
+                        color: tagColor,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
-          Text(value,
-              style: TextStyle(
-                  color: color, fontWeight: FontWeight.w700, fontSize: 14)),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
         ],
       ),
     );

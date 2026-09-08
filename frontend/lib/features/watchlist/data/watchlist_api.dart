@@ -85,6 +85,41 @@ class WatchlistApi {
     }
   }
 
+  /// Fetches historical candle data from Zerodha Kite and persists it into market_candles.
+  /// Uses a 21-day window of '5minute' candles (~500-750 candles), which is the exact
+  /// timeframe and count needed for IndicatorService (findTop500) and StrategyService.
+  Future<Result<List<Map<String, dynamic>>>> fetchAndStoreHistoricalCandles(
+    int token, {
+    String interval = '5minute',
+    int daysBack = 21,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final from = now.subtract(Duration(days: daysBack));
+      final fromStr =
+          '${from.year.toString().padLeft(4, '0')}-${from.month.toString().padLeft(2, '0')}-${from.day.toString().padLeft(2, '0')}';
+      final toStr =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final response = await dioClient.get(
+        '/api/v1/kite/historical',
+        queryParameters: {
+          'instrumentToken': token,
+          'from': fromStr,
+          'to': toStr,
+          'interval': interval,
+        },
+      );
+      final data = response.data;
+      final List<dynamic> list = data is List ? data : [];
+      return Success(list.whereType<Map<String, dynamic>>().toList());
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
+    }
+  }
+
   /// Fetch recent candles for an instrument token from market-data engine.
   /// Uses ISO 8601 UTC formatting so Spring Boot parses OffsetDateTime properly.
   Future<Result<List<Map<String, dynamic>>>> getRecentCandles(

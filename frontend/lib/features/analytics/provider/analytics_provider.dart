@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/result.dart';
 import '../data/analytics_api.dart';
@@ -69,9 +68,10 @@ class AnalyticsProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
-    final now = DateTime.now();
-    final from = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 3)));
-    final to = DateFormat('yyyy-MM-dd').format(now);
+    final now = DateTime.now().toUtc();
+    final int daysBack = _selectedTimeframe == 'day' ? 365 : 30;
+    final from = now.subtract(Duration(days: daysBack)).toIso8601String();
+    final to = now.add(const Duration(days: 1)).toIso8601String();
 
     final results = await Future.wait([
       _api.getLatestIndicators(token, _selectedTimeframe),

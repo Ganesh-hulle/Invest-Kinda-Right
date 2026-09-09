@@ -107,4 +107,32 @@ class KiteApi {
       await dioClient.post('/api/v1/kite/market-data/disconnect');
     } catch (_) {}
   }
+
+  /// Returns Kite funds and margin utilization.
+  Future<Result<KiteMargins>> getMargins() async {
+    try {
+      final response = await dioClient.get('/api/v1/kite/margins');
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return Success(KiteMargins.fromJson(data));
+      }
+      return const Failure(ServerFailure('Unexpected response format.'));
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
+    }
+  }
+
+  /// Disconnects and invalidates the active Kite session.
+  Future<Result<void>> disconnectSession() async {
+    try {
+      await dioClient.delete('/api/v1/kite/session');
+      return const Success(null);
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
+    }
+  }
 }

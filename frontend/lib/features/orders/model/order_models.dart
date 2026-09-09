@@ -62,7 +62,7 @@ class PaperOrder {
 
   factory PaperOrder.fromJson(Map<String, dynamic> json) {
     return PaperOrder(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: (json['id'] ?? json['orderId'] ?? json['order_id'] as num?)?.toInt() ?? 0,
       instrumentToken:
           (json['instrumentToken'] ?? json['instrument_token'] ?? 0 as num)
               .toInt(),
@@ -72,7 +72,7 @@ class PaperOrder {
       side: (json['side'] ?? '') as String,
       orderType: (json['orderType'] ?? json['order_type'] ?? '') as String,
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
-      price: (json['price'] ?? 0).toDouble(),
+      price: (json['price'] ?? json['averagePrice'] ?? json['average_price'] ?? json['requestedPrice'] ?? json['requested_price'] ?? 0).toDouble(),
       status: (json['status'] ?? 'PENDING') as String,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()

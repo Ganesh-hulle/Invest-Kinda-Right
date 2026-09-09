@@ -83,6 +83,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
   _IndicatorData? _indicators;
   _SignalType _signal = _SignalType.neutral;
   String _strategySignalStr = 'NEUTRAL';
+  String _selectedTimeframe = '5minute';
   bool _isLoadingIndicators = true;
   String? _indicatorError;
   bool _isFetchingHistory = false;
@@ -91,6 +92,42 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
   void initState() {
     super.initState();
     _fetchIndicators();
+  }
+
+  Future<void> _confirmRemoveFromWatchlist() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceVariant,
+        title: const Text('Remove from Watchlist',
+            style: TextStyle(color: AppColors.onSurface)),
+        content: Text(
+          'Remove ${widget.item.tradingsymbol} from your watchlist?',
+          style: const TextStyle(color: AppColors.onSurfaceMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remove', style: TextStyle(color: AppColors.sell)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await context
+          .read<WatchlistProvider>()
+          .removeInstrument(widget.item.instrumentToken);
+      if (mounted) {
+        Navigator.pop(context);
+        showSuccessSnackbar(
+            context, '${widget.item.tradingsymbol} removed from watchlist');
+      }
+    }
   }
 
   Future<void> _fetchIndicators() async {
@@ -106,7 +143,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
         '/api/v1/indicators/latest',
         queryParameters: {
           'instrumentToken': widget.item.instrumentToken,
-          'timeframe': '5minute',
+          'timeframe': _selectedTimeframe,
         },
       );
       final data = response.data as Map<String, dynamic>;
@@ -120,15 +157,17 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
           '/api/v1/strategies/ema-crossover/signal',
           queryParameters: {
             'instrumentToken': widget.item.instrumentToken,
-            'timeframe': '5minute',
+            'timeframe': _selectedTimeframe,
           },
         );
-        final signalData = signalResp.data as Map<String, dynamic>;
-        final signalStr =
-            signalData['signal']?.toString().toUpperCase() ?? 'NONE';
-        strategySignal = signalStr;
-        if (signalStr == 'BUY') signal = _SignalType.buy;
-        if (signalStr == 'SELL') signal = _SignalType.sell;
+        if (signalResp.statusCode == 200 && signalResp.data is Map) {
+          final signalData = signalResp.data as Map;
+          final signalStr =
+              (signalData['side'] ?? signalData['signal'])?.toString().toUpperCase() ?? 'NONE';
+          strategySignal = signalStr;
+          if (signalStr == 'BUY') signal = _SignalType.buy;
+          if (signalStr == 'SELL') signal = _SignalType.sell;
+        }
       } catch (_) {}
 
       if (mounted) {
@@ -164,10 +203,14 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
       final dioClient = context.read<DioClient>();
       final api = WatchlistApi(dioClient: dioClient);
 
+      final int daysBack = _selectedTimeframe == 'day'
+          ? 365
+          : (_selectedTimeframe == '15minute' ? 60 : 21);
+
       final result = await api.fetchAndStoreHistoricalCandles(
         widget.item.instrumentToken,
-        interval: '5minute',
-        daysBack: 21,
+        interval: _selectedTimeframe,
+        daysBack: daysBack,
       );
 
       if (!mounted) return;
@@ -176,7 +219,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
         case Success(:final data):
           showSuccessSnackbar(
             context,
-            'Synced ${data.length} 5-min candles for ${widget.item.tradingsymbol}. Indicators updated!',
+            'Synced ${data.length} ${_selectedTimeframe == '5minute' ? '5-min' : (_selectedTimeframe == '15minute' ? '15-min' : 'Daily')} candles for ${widget.item.tradingsymbol}. Indicators updated!',
           );
           await _fetchIndicators();
         case Failure(:final failure):
@@ -318,6 +361,13 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                     ),
                   ),
                   _signalBadge(_signal),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        color: AppColors.sell, size: 22),
+                    tooltip: 'Remove from Watchlist',
+                    onPressed: _confirmRemoveFromWatchlist,
+                  ),
                 ],
               ),
 
@@ -385,7 +435,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                   Row(
                     children: [
                       const Text(
-                        'INDICATORS · 5MIN',
+                        'INDICATORS',
                         style: TextStyle(
                           color: AppColors.onSurfaceMuted,
                           fontSize: 11,
@@ -406,6 +456,46 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                         tooltip: 'Indicator & Signal Guide',
                         onPressed: () => showIndicatorGuideSheet(context),
                       ),
+                      const SizedBox(width: 6),
+                      // Timeframe pills
+                      ...['5minute', '15minute', 'day'].map((tf) {
+                        final isSelected = _selectedTimeframe == tf;
+                        final label = tf == '5minute' ? '5m' : (tf == '15minute' ? '15m' : '1D');
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: InkWell(
+                            onTap: () {
+                              if (_selectedTimeframe != tf) {
+                                setState(() => _selectedTimeframe = tf);
+                                _fetchIndicators();
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.surfaceVariant2,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppColors.onSurfaceMuted,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                   TextButton.icon(
@@ -427,7 +517,9 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                         : const Icon(Icons.sync_rounded,
                             size: 14, color: AppColors.primary),
                     label: Text(
-                      _isFetchingHistory ? 'Syncing...' : 'Sync 5m History',
+                      _isFetchingHistory
+                          ? 'Syncing...'
+                          : 'Sync ${_selectedTimeframe == '5minute' ? '5m' : (_selectedTimeframe == '15minute' ? '15m' : '1D')}',
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.primary,

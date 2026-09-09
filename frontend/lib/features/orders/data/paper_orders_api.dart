@@ -83,4 +83,22 @@ class PaperOrdersApi {
       return Failure(UnknownFailure(e.toString()));
     }
   }
+
+  /// Squares off an open paper position by instrument token.
+  Future<Result<PaperOrder>> squareOffPosition(int instrumentToken) async {
+    try {
+      final response = await dioClient.post(
+        '/api/v1/paper/positions/$instrumentToken/square-off',
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return Success(PaperOrder.fromJson(data));
+      }
+      return const Failure(ServerFailure('Unexpected response format.'));
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
+    }
+  }
 }

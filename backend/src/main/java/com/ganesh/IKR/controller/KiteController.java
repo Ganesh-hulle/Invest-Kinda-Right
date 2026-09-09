@@ -49,4 +49,17 @@ public class KiteController {
         var user = (CustomUserDetails) authentication.getPrincipal();
         return kiteService.getPortfolio(user.getId());
     }
+
+    @GetMapping("/margins")
+    public com.ganesh.IKR.dto.kite.KiteMarginsResponse margins(Authentication authentication) {
+        var user = (CustomUserDetails) authentication.getPrincipal();
+        return kiteService.getMargins(user.getId());
+    }
+
+    @DeleteMapping("/session")
+    public org.springframework.http.ResponseEntity<Void> disconnect(Authentication authentication) {
+        var user = (CustomUserDetails) authentication.getPrincipal();
+        kiteService.disconnect(user.getId());
+        return org.springframework.http.ResponseEntity.noContent().build();
+    }
 }

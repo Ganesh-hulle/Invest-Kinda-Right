@@ -237,6 +237,75 @@ class _PositionsCard extends StatelessWidget {
                         _PnlText(value: p.unrealizedPnl),
                       ],
                     ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: AppColors.surfaceVariant,
+                            title: const Text('Square Off Position',
+                                style: TextStyle(color: AppColors.onSurface, fontSize: 16)),
+                            content: Text(
+                              'Exit ${p.quantity} qty of ${p.tradingsymbol} at market price?',
+                              style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.sell,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text('Exit'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true && context.mounted) {
+                          final res = await context
+                              .read<OrdersProvider>()
+                              .squareOffPaperPosition(p.instrumentToken);
+                          if (context.mounted) {
+                            res.fold(
+                              onSuccess: (_) => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Squared off ${p.tradingsymbol}'),
+                                  backgroundColor: AppColors.surfaceVariant,
+                                ),
+                              ),
+                              onFailure: (err) => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(err.message),
+                                  backgroundColor: AppColors.sell,
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.sell.withAlpha(25),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.sell.withAlpha(80)),
+                        ),
+                        child: const Text(
+                          'Exit',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.sell,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

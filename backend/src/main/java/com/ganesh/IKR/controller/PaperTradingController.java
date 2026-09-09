@@ -11,5 +11,6 @@ public class PaperTradingController {
     private final PaperTradingService service; public PaperTradingController(PaperTradingService service) { this.service = service; }
     @PostMapping("/orders") public OrderResponse place(@Valid @RequestBody OrderRequest r, Authentication a) { return OrderResponse.from(service.place(((CustomUserDetails)a.getPrincipal()).getId(), r)); }
     @GetMapping("/orders") public List<OrderResponse> orders(Authentication a) { return service.orders(((CustomUserDetails)a.getPrincipal()).getId()).stream().map(OrderResponse::from).toList(); }
-    @GetMapping("/positions") public List<PositionResponse> positions(Authentication a) { return service.positions(((CustomUserDetails)a.getPrincipal()).getId()).stream().map(PositionResponse::from).toList(); }
+    @GetMapping("/positions") public List<PositionResponse> positions(Authentication a) { return service.positions(((CustomUserDetails)a.getPrincipal()).getId()); }
+    @PostMapping("/positions/{instrumentToken}/square-off") public OrderResponse squareOff(@PathVariable Long instrumentToken, Authentication a) { return OrderResponse.from(service.squareOff(((CustomUserDetails)a.getPrincipal()).getId(), instrumentToken)); }
 }

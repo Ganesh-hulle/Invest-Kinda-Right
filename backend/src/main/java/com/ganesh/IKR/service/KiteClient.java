@@ -70,6 +70,34 @@ public class KiteClient {
                 .retrieve().body(String.class)));
     }
 
+    public JsonNode margins(String accessToken) {
+        requireConfigured();
+        return parseJson(call(() -> client.get().uri("/user/margins").header("X-Kite-Version", "3")
+                .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
+                .retrieve().body(String.class)));
+    }
+
+    public JsonNode invalidateSession(String accessToken) {
+        requireConfigured();
+        return parseJson(call(() -> client.delete().uri(uriBuilder -> uriBuilder.path("/session/token")
+                .queryParam("api_key", properties.getApiKey())
+                .queryParam("access_token", accessToken)
+                .build()).header("X-Kite-Version", "3").retrieve().body(String.class)));
+    }
+
+    public JsonNode getLtp(String accessToken, java.util.List<String> instruments) {
+        requireConfigured();
+        return parseJson(call(() -> client.get().uri(uriBuilder -> {
+            uriBuilder.path("/quote/ltp");
+            for (String instrument : instruments) {
+                uriBuilder.queryParam("i", instrument);
+            }
+            return uriBuilder.build();
+        }).header("X-Kite-Version", "3")
+                .header("Authorization", "token " + properties.getApiKey() + ":" + accessToken)
+                .retrieve().body(String.class)));
+    }
+
     public String instrumentDump(String accessToken) {
         requireApiKey();
         return call(() -> client.get().uri("/instruments").header("X-Kite-Version", "3")
@@ -134,15 +162,26 @@ public class KiteClient {
     private <T> T call(java.util.function.Supplier<T> request) {
         try { return request.get(); }
         catch (RestClientResponseException exception) {
-            log.error("Kite API returned HTTP status {}", exception.getStatusCode(), exception);
-            throw new KiteApiException("Kite API request failed: " + exception.getStatusCode(), exception);
+            String body = exception.getResponseBodyAsString();
+            String kiteMsg = null;
+            if (body != null && !body.isBlank()) {
+                try {
+                    JsonNode node = objectMapper.readTree(body);
+                    if (node.hasNonNull("message")) {
+                        kiteMsg = node.get("message").asText();
+                    }
+                } catch (Exception ignored) {}
+            }
+            String message = kiteMsg != null ? kiteMsg : ("Kite API request failed: " + exception.getStatusCode());
+            log.error("Kite API error [{}]: {}", exception.getStatusCode(), message);
+            throw new KiteApiException(message, exception);
         }
         catch (RestClientException exception) {
-            log.error("Kite API client/network error: {}", exception.getMessage(), exception);
+            log.error("Kite API client/network error: {}", exception.getMessage());
             throw new KiteApiException("Kite API client/network error: " + exception.getMessage(), exception);
         }
         catch (RuntimeException exception) {
-            log.error("Unexpected Kite API response error: {}", exception.getMessage(), exception);
+            log.error("Unexpected Kite API response error: {}", exception.getMessage());
             throw new KiteApiException("Unexpected Kite API response error", exception);
         }
     }

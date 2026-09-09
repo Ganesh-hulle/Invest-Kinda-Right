@@ -98,5 +98,30 @@ public class KiteService {
         return new KitePortfolioResponse(holdings, netPositions, dayPositions);
     }
 
+    @Transactional(readOnly = true)
+    public com.ganesh.IKR.dto.kite.KiteMarginsResponse getMargins(Long userId) {
+        KiteConnection connection = connectionRepository.findByUserId(userId)
+                .orElseThrow(() -> new KiteApiException("Kite account is not connected"));
+        String accessToken = cipher.decrypt(connection.getEncryptedAccessToken(), connection.getAccessTokenIv());
+        var marginsResponse = kiteClient.margins(accessToken);
+        var data = marginsResponse.path("data");
+        Map<String, Object> equity = objectMapper.convertValue(data.path("equity"), new TypeReference<>() {});
+        Map<String, Object> commodity = objectMapper.convertValue(data.path("commodity"), new TypeReference<>() {});
+        return new com.ganesh.IKR.dto.kite.KiteMarginsResponse(equity, commodity);
+    }
+
+    @Transactional
+    public void disconnect(Long userId) {
+        var connectionOpt = connectionRepository.findByUserId(userId);
+        if (connectionOpt.isPresent()) {
+            var connection = connectionOpt.get();
+            try {
+                String accessToken = cipher.decrypt(connection.getEncryptedAccessToken(), connection.getAccessTokenIv());
+                kiteClient.invalidateSession(accessToken);
+            } catch (Exception ignored) {}
+            connectionRepository.delete(connection);
+        }
+    }
+
     private String encode(String value) { return URLEncoder.encode(value, StandardCharsets.UTF_8); }
 }

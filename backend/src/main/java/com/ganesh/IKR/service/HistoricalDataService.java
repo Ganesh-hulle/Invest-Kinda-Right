@@ -18,6 +18,7 @@ import java.util.*;
 
 @Service
 public class HistoricalDataService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(HistoricalDataService.class);
     private static final ZoneId MARKET_ZONE = ZoneId.of("Asia/Kolkata");
     private static final Set<String> SUPPORTED_INTERVALS = Set.of(
             "minute", "3minute", "5minute", "10minute", "15minute", "30minute", "60minute", "day");
@@ -52,33 +53,94 @@ public class HistoricalDataService {
         var connection = connectionRepository.findByUserId(userId)
                 .orElseThrow(() -> new KiteApiException("Kite account is not connected"));
 
-        JsonNode response = kiteClient.historicalData(
-                cipher.decrypt(connection.getEncryptedAccessToken(), connection.getAccessTokenIv()),
-                instrumentToken, KITE_DATE_TIME.format(range.from()), KITE_DATE_TIME.format(range.to()), interval);
-        JsonNode candles = response.path("data").path("candles");
-        if (!candles.isArray()) throw new KiteApiException("Kite historical response did not contain candles");
+        String decryptedToken = cipher.decrypt(connection.getEncryptedAccessToken(), connection.getAccessTokenIv());
+        int maxDays = maxDaysForInterval(interval);
+        List<DateRange> chunks = splitIntoChunks(range.from(), range.to(), maxDays);
+        log.info("Fetching historical data for token {} ({}): {} to {} in {} chunk(s)",
+                instrumentToken, interval, range.from(), range.to(), chunks.size());
 
-        List<CandleRow> rows = new ArrayList<>(candles.size());
-        for (JsonNode candle : candles) rows.add(parseCandle(candle));
-        jdbcTemplate.batchUpdate("""
-                INSERT INTO market_candles (instrument_token, exchange, timeframe, candle_time,
-                    open, high, low, close, volume)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT (instrument_token, timeframe, candle_time) DO UPDATE SET
-                    exchange = EXCLUDED.exchange, open = EXCLUDED.open, high = EXCLUDED.high,
-                    low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume
-                """, rows, 500, (statement, row) -> {
-            statement.setLong(1, instrumentToken);
-            statement.setString(2, instrument.getExchange());
-            statement.setString(3, interval);
-            statement.setObject(4, row.candleTime());
-            statement.setBigDecimal(5, row.open());
-            statement.setBigDecimal(6, row.high());
-            statement.setBigDecimal(7, row.low());
-            statement.setBigDecimal(8, row.close());
-            statement.setLong(9, row.volume());
-        });
-        return rows.stream().map(row -> new HistoricalCandleResponse(row.candleTime(), row.open(), row.high(), row.low(), row.close(), row.volume())).toList();
+        Map<OffsetDateTime, CandleRow> candleMap = new TreeMap<>();
+        for (int i = 0; i < chunks.size(); i++) {
+            DateRange chunk = chunks.get(i);
+            try {
+                JsonNode response = kiteClient.historicalData(
+                        decryptedToken,
+                        instrumentToken,
+                        KITE_DATE_TIME.format(chunk.from()),
+                        KITE_DATE_TIME.format(chunk.to()),
+                        interval);
+                JsonNode candles = response.path("data").path("candles");
+                if (candles.isArray()) {
+                    for (JsonNode candle : candles) {
+                        CandleRow row = parseCandle(candle);
+                        candleMap.put(row.candleTime(), row);
+                    }
+                }
+            } catch (KiteApiException e) {
+                log.warn("Failed to fetch chunk {}/{} for token {}: {}", i + 1, chunks.size(), instrumentToken, e.getMessage());
+                if (candleMap.isEmpty() && chunks.size() == 1) {
+                    throw e;
+                }
+            }
+            if (chunks.size() > 1 && i < chunks.size() - 1) {
+                try {
+                    Thread.sleep(150);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+
+        List<CandleRow> rows = new ArrayList<>(candleMap.values());
+        if (!rows.isEmpty()) {
+            jdbcTemplate.batchUpdate("""
+                    INSERT INTO market_candles (instrument_token, exchange, timeframe, candle_time,
+                        open, high, low, close, volume)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (instrument_token, timeframe, candle_time) DO UPDATE SET
+                        exchange = EXCLUDED.exchange, open = EXCLUDED.open, high = EXCLUDED.high,
+                        low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume
+                    """, rows, 500, (statement, row) -> {
+                statement.setLong(1, instrumentToken);
+                statement.setString(2, instrument.getExchange());
+                statement.setString(3, interval);
+                statement.setObject(4, row.candleTime());
+                statement.setBigDecimal(5, row.open());
+                statement.setBigDecimal(6, row.high());
+                statement.setBigDecimal(7, row.low());
+                statement.setBigDecimal(8, row.close());
+                statement.setLong(9, row.volume());
+            });
+        }
+        return rows.stream().map(row -> new HistoricalCandleResponse(
+                row.candleTime(), row.open(), row.high(), row.low(), row.close(), row.volume())
+        ).toList();
+    }
+
+    private static int maxDaysForInterval(String interval) {
+        return switch (interval) {
+            case "minute" -> 50;
+            case "3minute", "5minute", "10minute", "15minute", "30minute" -> 90;
+            case "60minute" -> 350;
+            default -> 1800;
+        };
+    }
+
+    private List<DateRange> splitIntoChunks(LocalDateTime start, LocalDateTime end, int chunkDays) {
+        List<DateRange> chunks = new ArrayList<>();
+        LocalDateTime currentStart = start;
+        while (currentStart.isBefore(end)) {
+            LocalDateTime currentEnd = currentStart.plusDays(chunkDays);
+            if (currentEnd.isAfter(end)) {
+                currentEnd = end;
+            }
+            chunks.add(new DateRange(currentStart, currentEnd));
+            if (currentEnd.isEqual(end)) {
+                break;
+            }
+            currentStart = currentEnd;
+        }
+        return chunks;
     }
 
     private CandleRow parseCandle(JsonNode candle) {

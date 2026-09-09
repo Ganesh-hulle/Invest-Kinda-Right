@@ -11,6 +11,7 @@ class KiteProvider extends ChangeNotifier {
 
   KiteProfile? _profile;
   KitePortfolioSummary? _portfolio;
+  KiteMargins? _margins;
   bool _isConnected = false;
   bool _isLoading = false;
   bool _isPortfolioLoading = false;
@@ -27,6 +28,7 @@ class KiteProvider extends ChangeNotifier {
 
   KiteProfile? get profile => _profile;
   KitePortfolioSummary? get portfolio => _portfolio;
+  KiteMargins? get margins => _margins;
   bool get isConnected => _isConnected;
   bool get isLoading => _isLoading;
   bool get isPortfolioLoading => _isPortfolioLoading;
@@ -129,5 +131,30 @@ class KiteProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> getMarketDataStatus() async {
     final result = await _api.getMarketDataStatus();
     return result.dataOrNull ?? {};
+  }
+
+  /// Fetches real-time funds and margin usage from Kite.
+  Future<void> fetchMargins() async {
+    final result = await _api.getMargins();
+    result.fold(
+      onSuccess: (m) {
+        _margins = m;
+        notifyListeners();
+      },
+      onFailure: (_) {},
+    );
+  }
+
+  /// Disconnects the Kite connection on broker and backend.
+  Future<Result<void>> disconnect() async {
+    final result = await _api.disconnectSession();
+    if (result.isSuccess) {
+      _isConnected = false;
+      _profile = null;
+      _portfolio = null;
+      _margins = null;
+      notifyListeners();
+    }
+    return result;
   }
 }

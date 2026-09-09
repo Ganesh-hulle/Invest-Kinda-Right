@@ -31,6 +31,8 @@ public class IndicatorService {
         if (candles.isEmpty()) return List.of();
         BigDecimal ema9 = null, ema20 = null, macdSignal = null, cumulativePriceVolume = BigDecimal.ZERO, cumulativeVolume = BigDecimal.ZERO;
         BigDecimal averageGain = null, averageLoss = null, previousClose = null, previousAtr = null;
+        BigDecimal sumGain = BigDecimal.ZERO, sumLoss = BigDecimal.ZERO;
+        int changeCount = 0;
         BigDecimal previousFinalUpper = null, previousFinalLower = null, previousSuperTrend = null;
         List<IndicatorResponse> result = new ArrayList<>();
         for (int index = 0; index < candles.size(); index++) {
@@ -42,11 +44,32 @@ public class IndicatorService {
 
             BigDecimal rsi = null;
             if (previousClose != null) {
+                changeCount++;
                 BigDecimal change = candle.getClose().subtract(previousClose);
-                BigDecimal gain = change.max(BigDecimal.ZERO); BigDecimal loss = change.negate().max(BigDecimal.ZERO);
-                if (averageGain == null) { averageGain = gain; averageLoss = loss; }
-                else { averageGain = averageGain.multiply(BigDecimal.valueOf(13)).add(gain).divide(BigDecimal.valueOf(14), SCALE, RoundingMode.HALF_UP); averageLoss = averageLoss.multiply(BigDecimal.valueOf(13)).add(loss).divide(BigDecimal.valueOf(14), SCALE, RoundingMode.HALF_UP); }
-                rsi = averageLoss.signum() == 0 ? BigDecimal.valueOf(100) : BigDecimal.valueOf(100).subtract(BigDecimal.valueOf(100).divide(BigDecimal.ONE.add(averageGain.divide(averageLoss, SCALE, RoundingMode.HALF_UP)), SCALE, RoundingMode.HALF_UP));
+                BigDecimal gain = change.max(BigDecimal.ZERO);
+                BigDecimal loss = change.negate().max(BigDecimal.ZERO);
+                if (changeCount < 14) {
+                    sumGain = sumGain.add(gain);
+                    sumLoss = sumLoss.add(loss);
+                    if (candles.size() <= 14) {
+                        BigDecimal interimGain = sumGain.divide(BigDecimal.valueOf(changeCount), SCALE, RoundingMode.HALF_UP);
+                        BigDecimal interimLoss = sumLoss.divide(BigDecimal.valueOf(changeCount), SCALE, RoundingMode.HALF_UP);
+                        rsi = interimLoss.signum() == 0 ? (interimGain.signum() == 0 ? BigDecimal.valueOf(50) : BigDecimal.valueOf(100))
+                                : BigDecimal.valueOf(100).subtract(BigDecimal.valueOf(100).divide(BigDecimal.ONE.add(interimGain.divide(interimLoss, SCALE, RoundingMode.HALF_UP)), SCALE, RoundingMode.HALF_UP));
+                    }
+                } else if (changeCount == 14) {
+                    sumGain = sumGain.add(gain);
+                    sumLoss = sumLoss.add(loss);
+                    averageGain = sumGain.divide(BigDecimal.valueOf(14), SCALE, RoundingMode.HALF_UP);
+                    averageLoss = sumLoss.divide(BigDecimal.valueOf(14), SCALE, RoundingMode.HALF_UP);
+                    rsi = averageLoss.signum() == 0 ? (averageGain.signum() == 0 ? BigDecimal.valueOf(50) : BigDecimal.valueOf(100))
+                            : BigDecimal.valueOf(100).subtract(BigDecimal.valueOf(100).divide(BigDecimal.ONE.add(averageGain.divide(averageLoss, SCALE, RoundingMode.HALF_UP)), SCALE, RoundingMode.HALF_UP));
+                } else {
+                    averageGain = averageGain.multiply(BigDecimal.valueOf(13)).add(gain).divide(BigDecimal.valueOf(14), SCALE, RoundingMode.HALF_UP);
+                    averageLoss = averageLoss.multiply(BigDecimal.valueOf(13)).add(loss).divide(BigDecimal.valueOf(14), SCALE, RoundingMode.HALF_UP);
+                    rsi = averageLoss.signum() == 0 ? (averageGain.signum() == 0 ? BigDecimal.valueOf(50) : BigDecimal.valueOf(100))
+                            : BigDecimal.valueOf(100).subtract(BigDecimal.valueOf(100).divide(BigDecimal.ONE.add(averageGain.divide(averageLoss, SCALE, RoundingMode.HALF_UP)), SCALE, RoundingMode.HALF_UP));
+                }
             }
             BigDecimal trueRange = previousClose == null ? candle.getHigh().subtract(candle.getLow()) : max(candle.getHigh().subtract(candle.getLow()), candle.getHigh().subtract(previousClose).abs(), candle.getLow().subtract(previousClose).abs());
             BigDecimal atr = previousAtr == null ? trueRange : previousAtr.multiply(BigDecimal.valueOf(13)).add(trueRange).divide(BigDecimal.valueOf(14), SCALE, RoundingMode.HALF_UP);

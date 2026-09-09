@@ -157,8 +157,13 @@ class _CandleChartScreenState extends State<CandleChartScreen> {
     });
 
     final now = DateTime.now().toUtc();
-    final from = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 7)));
-    final to = DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
+    final int daysBack = _selectedTimeframe == 'day'
+        ? 365
+        : (_selectedTimeframe == '60minute' || _selectedTimeframe == '30minute')
+            ? 60
+            : 30;
+    final from = now.subtract(Duration(days: daysBack)).toIso8601String();
+    final to = now.add(const Duration(days: 1)).toIso8601String();
 
     final result = await _api.getCandles(_token!, _selectedTimeframe, from, to);
     if (!mounted) return;

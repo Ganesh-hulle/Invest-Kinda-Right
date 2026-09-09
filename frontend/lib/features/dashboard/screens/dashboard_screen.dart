@@ -628,8 +628,11 @@ class _EmaSignalStripState extends State<_EmaSignalStrip> {
           '/api/v1/strategies/ema-crossover/signal',
           queryParameters: {'instrumentToken': token, 'timeframe': '5minute'},
         );
-        final data = resp.data as Map<String, dynamic>;
-        final signalStr = data['signal']?.toString().toUpperCase() ?? 'NONE';
+        String signalStr = 'NONE';
+        if (resp.statusCode == 200 && resp.data is Map) {
+          final data = resp.data as Map;
+          signalStr = (data['side'] ?? data['signal'])?.toString().toUpperCase() ?? 'NONE';
+        }
         if (mounted) {
           setState(() {
             _signals[token] = _SignalChipData(

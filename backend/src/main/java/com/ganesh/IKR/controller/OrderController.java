@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 public class OrderController {
     private final LiveOrderService service; public OrderController(LiveOrderService service) { this.service = service; }
     @PostMapping public LiveOrderResponse place(@Valid @RequestBody OrderRequest r, Authentication a) { return LiveOrderResponse.from(service.place(((CustomUserDetails)a.getPrincipal()).getId(), r)); }
+    @GetMapping public java.util.List<LiveOrderResponse> list(Authentication a) { return service.orders(((CustomUserDetails)a.getPrincipal()).getId()).stream().map(LiveOrderResponse::from).toList(); }
     @GetMapping("/{id}") public LiveOrderResponse get(@PathVariable Long id, Authentication a) { return LiveOrderResponse.from(service.get(((CustomUserDetails)a.getPrincipal()).getId(), id)); }
     @PutMapping("/{id}") public LiveOrderResponse modify(@PathVariable Long id, @Valid @RequestBody ModifyOrderRequest r, Authentication a) { return LiveOrderResponse.from(service.modify(((CustomUserDetails)a.getPrincipal()).getId(), id, r)); }
     @PostMapping("/{id}/cancel") public LiveOrderResponse cancel(@PathVariable Long id, Authentication a) { return LiveOrderResponse.from(service.cancel(((CustomUserDetails)a.getPrincipal()).getId(), id)); }

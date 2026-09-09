@@ -49,6 +49,7 @@ public class KiteMarketDataService {
     private final WebSocketClient webSocketClient = new StandardWebSocketClient();
     private final Map<Long, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final Map<Long, ConnectionState> connectionStates = new ConcurrentHashMap<>();
+    private volatile boolean shuttingDown = false;
 
     public KiteMarketDataService(KiteProperties properties, KiteConnectionRepository connectionRepository,
                                  SecretTokenCipher cipher, MarketTickPipeline pipeline,
@@ -113,9 +114,13 @@ public class KiteMarketDataService {
 
     @PreDestroy
     public void closeAll() {
+        shuttingDown = true;
         Set<Long> userIds = new HashSet<>(connectionStates.keySet());
         userIds.addAll(sessions.keySet());
         userIds.forEach(this::disconnect);
+        sessions.values().forEach(this::closeQuietly);
+        sessions.clear();
+        connectionStates.clear();
     }
 
     private void send(WebSocketSession session, String value, ConnectionState state) {
@@ -158,13 +163,21 @@ public class KiteMarketDataService {
     private final class TickerHandler implements WebSocketHandler {
         private final Long userId; private final Set<Long> subscribedTokens;
         private final ConnectionState state;
+        private volatile WebSocketSession currentSession;
+
         private TickerHandler(Long userId, Set<Long> subscribedTokens, ConnectionState state) {
             this.userId = userId; this.subscribedTokens = subscribedTokens; this.state = state;
         }
         @Override public void afterConnectionEstablished(WebSocketSession session) {
+            this.currentSession = session;
             log.debug("Kite ticker WebSocket handshake established for user {}", userId);
         }
         @Override public void handleMessage(WebSocketSession session, org.springframework.web.socket.WebSocketMessage<?> message) {
+            if (shuttingDown) {
+                closeQuietly(session);
+                return;
+            }
+            this.currentSession = session;
             if (message instanceof BinaryMessage binary) {
                 parse(binary.getPayload());
             } else if (message instanceof TextMessage text) {
@@ -192,6 +205,10 @@ public class KiteMarketDataService {
         @Override public boolean supportsPartialMessages() { return false; }
 
         private void parse(ByteBuffer payload) {
+            if (shuttingDown) {
+                closeQuietly(currentSession);
+                return;
+            }
             state.binaryFrames.incrementAndGet();
             ByteBuffer buffer = payload.slice().order(ByteOrder.BIG_ENDIAN);
             if (buffer.remaining() == 1) {
@@ -207,6 +224,10 @@ public class KiteMarketDataService {
             state.packetsReceived.addAndGet(packetCount);
             log.debug("Kite binary frame received for user {}: bytes={}, packets={}", userId, payload.remaining(), packetCount);
             for (int i = 0; i < packetCount && buffer.remaining() >= 2; i++) {
+                if (shuttingDown) {
+                    closeQuietly(currentSession);
+                    return;
+                }
                 int packetLength = Short.toUnsignedInt(buffer.getShort());
                 if (packetLength > buffer.remaining()) {
                     state.malformedFrames.incrementAndGet();
@@ -236,15 +257,34 @@ public class KiteMarketDataService {
                 long pricePaise = Integer.toUnsignedLong(packet.getInt(4));
                 Long quantity = packetLength >= 12 ? Integer.toUnsignedLong(packet.getInt(8)) : null;
                 Long volume = packetLength >= 20 ? Integer.toUnsignedLong(packet.getInt(16)) : null;
+                java.math.BigDecimal lastPrice = java.math.BigDecimal.valueOf(pricePaise, 2);
+                java.math.BigDecimal closePrice = null;
+                java.math.BigDecimal change = null;
+                java.math.BigDecimal changePercent = null;
+                if (packetLength >= 44) {
+                    long closePaise = Integer.toUnsignedLong(packet.getInt(40));
+                    if (closePaise > 0) {
+                        closePrice = java.math.BigDecimal.valueOf(closePaise, 2);
+                        change = lastPrice.subtract(closePrice);
+                        changePercent = change.multiply(java.math.BigDecimal.valueOf(100))
+                                .divide(closePrice, 4, java.math.RoundingMode.HALF_UP);
+                    }
+                }
                 try {
                     OffsetDateTime tickTimestamp = exchangeTimestamp(packet);
                     pipeline.accept(new MarketTick(token, null, null,
-                            java.math.BigDecimal.valueOf(pricePaise, 2), quantity, volume, tickTimestamp));
+                            lastPrice, quantity, volume, closePrice, change, changePercent, tickTimestamp));
                     state.ticksAccepted.incrementAndGet();
                     state.lastTickAt = tickTimestamp;
-                    log.debug("Kite tick accepted for user {}: token={}, packetLength={}, price={}, quantity={}, volume={}",
-                            userId, token, packetLength, java.math.BigDecimal.valueOf(pricePaise, 2), quantity, volume);
+                    log.debug("Kite tick accepted for user {}: token={}, packetLength={}, price={}, close={}, change={}, quantity={}, volume={}",
+                            userId, token, packetLength, lastPrice, closePrice, change, quantity, volume);
                 } catch (RuntimeException exception) {
+                    if (shuttingDown || isContextClosed(exception)) {
+                        shuttingDown = true;
+                        log.debug("Application context is closing/closed, terminating Kite ticker session for user {}", userId);
+                        closeQuietly(currentSession);
+                        return;
+                    }
                     state.ticksRejected.incrementAndGet();
                     state.lastError = safeMessage(exception);
                     log.error("Kite tick processing failed for user {}: token={}, packetLength={}, error={}",
@@ -322,5 +362,17 @@ public class KiteMarketDataService {
                     malformedFrames.get(), shortPackets.get(), lastPacketToken, lastUnmatchedToken,
                     connectedAt, lastTickAt, closedAt, lastError);
         }
+    }
+
+    private static boolean isContextClosed(Throwable t) {
+        Throwable curr = t;
+        while (curr != null) {
+            String msg = curr.getMessage();
+            if (msg != null && (msg.contains("has been closed already") || msg.contains("ApplicationContext"))) {
+                return true;
+            }
+            curr = curr.getCause();
+        }
+        return false;
     }
 }

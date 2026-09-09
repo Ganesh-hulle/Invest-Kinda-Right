@@ -26,9 +26,12 @@ public class StrategyService {
     public Signal evaluateEmaCrossover(Long instrumentToken, String timeframe) {
         var instrument = instrumentRepository.findByInstrumentToken(instrumentToken).orElseThrow(() -> new IllegalArgumentException("Instrument not found"));
         List<MarketCandle> candles = new ArrayList<>(candleRepository.findTop500ByInstrumentTokenAndTimeframeOrderByCandleTimeDesc(instrumentToken, timeframe));
-        Collections.reverse(candles); emaCrossoverStrategy.reset(instrumentToken);
-        Signal signal = null;
-        for (MarketCandle candle : candles) signal = emaCrossoverStrategy.evaluate(new Candle(candle.getInstrumentToken(), candle.getExchange(), candle.getTimeframe(), candle.getCandleTime(), candle.getOpen(), candle.getHigh(), candle.getLow(), candle.getClose(), candle.getVolume()));
+        Collections.reverse(candles);
+        List<Candle> domainCandles = candles.stream()
+                .map(c -> new Candle(c.getInstrumentToken(), c.getExchange(), c.getTimeframe(), c.getCandleTime(),
+                        c.getOpen(), c.getHigh(), c.getLow(), c.getClose(), c.getVolume()))
+                .toList();
+        Signal signal = emaCrossoverStrategy.evaluateSeries(domainCandles);
         if (signal == null) return null;
         return new Signal(signal.instrumentToken(), signal.exchange(), instrument.getTradingsymbol(), signal.side(), signal.price(), signal.strategy(), signal.generatedAt());
     }

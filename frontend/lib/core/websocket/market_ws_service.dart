@@ -10,6 +10,7 @@ class QuoteUpdate {
   final double lastPrice;
   final String? tradingsymbol;
   final String? exchange;
+  final double? closePrice;
   final double? change;
   final double? changePercent;
   final DateTime receivedAt;
@@ -19,6 +20,7 @@ class QuoteUpdate {
     required this.lastPrice,
     this.tradingsymbol,
     this.exchange,
+    this.closePrice,
     this.change,
     this.changePercent,
     DateTime? receivedAt,
@@ -30,11 +32,18 @@ class QuoteUpdate {
       lastPrice: (json['lastPrice'] as num).toDouble(),
       tradingsymbol: json['tradingsymbol'] as String?,
       exchange: json['exchange'] as String?,
+      closePrice: json['closePrice'] != null
+          ? (json['closePrice'] as num).toDouble()
+          : (json['close_price'] != null
+              ? (json['close_price'] as num).toDouble()
+              : null),
       change:
           json['change'] != null ? (json['change'] as num).toDouble() : null,
       changePercent: json['changePercent'] != null
           ? (json['changePercent'] as num).toDouble()
-          : null,
+          : (json['change_percent'] != null
+              ? (json['change_percent'] as num).toDouble()
+              : null),
     );
   }
 }

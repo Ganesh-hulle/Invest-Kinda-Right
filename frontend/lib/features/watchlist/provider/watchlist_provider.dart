@@ -204,7 +204,9 @@ class WatchlistProvider extends ChangeNotifier {
         if (newPrice < oldPrice) dir = PriceDirection.down;
       }
 
-      double close = _nifty50.closePrice;
+      double close = (update.closePrice != null && update.closePrice! > 0)
+          ? update.closePrice!
+          : _nifty50.closePrice;
       if (close <= 0) {
         close = (_nifty50.change != 0 && oldPrice > 0)
             ? (oldPrice - _nifty50.change)
@@ -238,7 +240,9 @@ class WatchlistProvider extends ChangeNotifier {
         if (newPrice < oldPrice) dir = PriceDirection.down;
       }
 
-      double close = _sensex.closePrice;
+      double close = (update.closePrice != null && update.closePrice! > 0)
+          ? update.closePrice!
+          : _sensex.closePrice;
       if (close <= 0) {
         close = (_sensex.change != 0 && oldPrice > 0)
             ? (oldPrice - _sensex.change)
@@ -281,9 +285,13 @@ class WatchlistProvider extends ChangeNotifier {
     }
 
     // Determine close/base price to compute dynamic change & change% on raw ticks
-    double close = old.closePrice;
+    double close = (update.closePrice != null && update.closePrice! > 0)
+        ? update.closePrice!
+        : old.closePrice;
     if (close <= 0) {
-      if (old.change != 0 && oldPrice > 0) {
+      if (update.change != null && update.change != 0 && newPrice > 0) {
+        close = newPrice - update.change!;
+      } else if (old.change != 0 && oldPrice > 0) {
         close = oldPrice - old.change;
       } else {
         close = newPrice;
@@ -291,7 +299,7 @@ class WatchlistProvider extends ChangeNotifier {
     }
 
     final change = update.change ??
-        (close > 0 ? (newPrice - close) : old.change);
+        (close > 0 && newPrice > 0 && close != newPrice ? (newPrice - close) : old.change);
     final changePercent = update.changePercent ??
         (close > 0 ? (change / close) * 100.0 : old.changePercent);
 
@@ -589,13 +597,18 @@ class WatchlistProvider extends ChangeNotifier {
         : old.exchange;
 
     final lastPrice = (incomingPrice > 0) ? incomingPrice : old.lastPrice;
-    final change = (q['change'] as num?)?.toDouble() ?? old.change;
-    final changePercent = (q['changePercent'] as num?)?.toDouble() ??
+    double change = (q['change'] as num?)?.toDouble() ?? old.change;
+    double changePercent = (q['changePercent'] as num?)?.toDouble() ??
         (q['change_percent'] as num?)?.toDouble() ??
         old.changePercent;
 
-    double close = (q['closePrice'] as num?)?.toDouble() ?? old.closePrice;
-    if (close <= 0 && change != 0 && lastPrice > 0) {
+    double close = (q['closePrice'] as num?)?.toDouble() ??
+        (q['close_price'] as num?)?.toDouble() ??
+        old.closePrice;
+    if (close > 0 && lastPrice > 0 && (change == 0.0 || (q['change'] == null && q['change_percent'] == null))) {
+      change = lastPrice - close;
+      changePercent = (change / close) * 100.0;
+    } else if (close <= 0 && change != 0 && lastPrice > 0) {
       close = lastPrice - change;
     }
 

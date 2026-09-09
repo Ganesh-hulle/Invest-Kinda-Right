@@ -148,3 +148,33 @@ class InstrumentSyncResponse {
     );
   }
 }
+
+class KiteMargins {
+  final double availableCash;
+  final double usedMargin;
+  final double netMargin;
+
+  const KiteMargins({
+    required this.availableCash,
+    required this.usedMargin,
+    required this.netMargin,
+  });
+
+  factory KiteMargins.fromJson(Map<String, dynamic> json) {
+    final equity = json['equity'] is Map ? json['equity'] as Map : {};
+    final available = equity['available'] is Map ? equity['available'] as Map : {};
+    final utilised = equity['utilised'] is Map ? equity['utilised'] as Map : {};
+
+    final cash = (available['cash'] as num?)?.toDouble() ??
+        (available['live_balance'] as num?)?.toDouble() ??
+        0.0;
+    final debits = (utilised['debits'] as num?)?.toDouble() ?? 0.0;
+    final net = (equity['net'] as num?)?.toDouble() ?? (cash - debits);
+
+    return KiteMargins(
+      availableCash: cash,
+      usedMargin: debits,
+      netMargin: net,
+    );
+  }
+}

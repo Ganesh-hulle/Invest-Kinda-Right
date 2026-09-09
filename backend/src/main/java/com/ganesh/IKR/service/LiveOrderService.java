@@ -65,6 +65,11 @@ public class LiveOrderService {
     }
 
     @Transactional(readOnly = true)
+    public java.util.List<LiveOrder> orders(Long userId) {
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    @Transactional(readOnly = true)
     public LiveOrder get(Long userId, Long id) {
         LiveOrder order = orderRepository.findById(id).orElseThrow(() -> new RiskRejectedException("Order was not found"));
         if (!order.getUser().getId().equals(userId)) throw new RiskRejectedException("Order does not belong to the current user");

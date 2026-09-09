@@ -55,8 +55,42 @@ public class PaperTradingService {
 
     @Transactional(readOnly = true)
     public List<PaperOrder> orders(Long userId) { return orderRepository.findByUserIdOrderByCreatedAtDesc(userId); }
+
     @Transactional(readOnly = true)
-    public List<PaperPosition> positions(Long userId) { return positionRepository.findByUserIdOrderByTradingsymbolAsc(userId).stream().filter(p -> p.getQuantity() > 0).toList(); }
+    public List<com.ganesh.IKR.dto.order.PositionResponse> positions(Long userId) {
+        return positionRepository.findByUserIdOrderByTradingsymbolAsc(userId).stream()
+                .filter(p -> p.getQuantity() > 0)
+                .map(p -> {
+                    var quote = marketDataStore.get(p.getInstrumentToken());
+                    BigDecimal lastPrice = quote != null ? quote.lastPrice() : p.getAveragePrice();
+                    BigDecimal unrealizedPnl = lastPrice != null
+                            ? lastPrice.subtract(p.getAveragePrice()).multiply(BigDecimal.valueOf(p.getQuantity()))
+                            : BigDecimal.ZERO;
+                    return com.ganesh.IKR.dto.order.PositionResponse.from(p, lastPrice, unrealizedPnl);
+                })
+                .toList();
+    }
+
+    @Transactional
+    public PaperOrder squareOff(Long userId, Long instrumentToken) {
+        PaperPosition position = positionRepository.findByUserIdAndInstrumentToken(userId, instrumentToken)
+                .filter(p -> p.getQuantity() > 0)
+                .orElseThrow(() -> new RiskRejectedException("No open position to square off for instrument: " + instrumentToken));
+
+        var quote = marketDataStore.get(instrumentToken);
+        BigDecimal executionPrice = quote != null ? quote.lastPrice() : position.getAveragePrice();
+
+        OrderRequest request = new OrderRequest(
+                instrumentToken,
+                "SELL",
+                "MARKET",
+                position.getQuantity(),
+                executionPrice,
+                null,
+                "sqoff-" + instrumentToken + "-" + System.currentTimeMillis()
+        );
+        return place(userId, request);
+    }
 
     private void applyPosition(User user, com.ganesh.IKR.entity.Instrument instrument, String side, int quantity, BigDecimal price) {
         PaperPosition position = positionRepository.findByUserIdAndInstrumentToken(user.getId(), instrument.getInstrumentToken()).orElse(null);

@@ -223,6 +223,8 @@ class _WatchlistScreenState extends State<WatchlistScreen>
                           _WatchlistRow(
                             item: item,
                             onTap: () => _openDetailSheet(context, item),
+                            onLongPress: () => _confirmDelete(context, item),
+                            onDelete: () => _confirmDelete(context, item),
                           ),
                           const Divider(
                               height: 1, color: AppColors.divider, indent: 16),
@@ -246,8 +248,15 @@ class _WatchlistScreenState extends State<WatchlistScreen>
 class _WatchlistRow extends StatelessWidget {
   final WatchlistItem item;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onDelete;
 
-  const _WatchlistRow({required this.item, required this.onTap});
+  const _WatchlistRow({
+    required this.item,
+    required this.onTap,
+    this.onLongPress,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -255,6 +264,7 @@ class _WatchlistRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -372,6 +382,18 @@ class _WatchlistRow extends StatelessWidget {
                   ),
                 ],
               ),
+            if (onDelete != null) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.close_rounded,
+                    size: 16, color: AppColors.onSurfaceMuted),
+                tooltip: 'Remove from Watchlist',
+                onPressed: onDelete,
+              ),
+            ],
           ],
         ),
       ),

@@ -38,8 +38,7 @@ class OrdersProvider extends ChangeNotifier {
     final result = await _paperApi.getOrders();
     result.fold(
       onSuccess: (orders) {
-        // Newest first
-        _paperOrders = orders.reversed.toList();
+        _paperOrders = orders;
       },
       onFailure: (failure) {
         _error = failure.message;
@@ -59,7 +58,16 @@ class OrdersProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Loads paper orders and positions concurrently.
+  Future<void> loadLiveOrders() async {
+    final result = await _liveApi.getOrders();
+    result.fold(
+      onSuccess: (orders) => _liveOrders = orders,
+      onFailure: (failure) => _error = failure.message,
+    );
+    notifyListeners();
+  }
+
+  /// Loads paper orders, positions, and live orders concurrently.
   Future<void> loadAll() async {
     _isLoading = true;
     _error = null;
@@ -68,6 +76,7 @@ class OrdersProvider extends ChangeNotifier {
     await Future.wait([
       loadPaperOrders(),
       loadPaperPositions(),
+      loadLiveOrders(),
     ]);
 
     _isLoading = false;
@@ -76,11 +85,26 @@ class OrdersProvider extends ChangeNotifier {
 
   // ── Place Orders ─────────────────────────────────────────────────────────
 
-  /// Places a paper order. Refreshes order list on success.
+  /// Places a paper order. Refreshes order list and positions on success.
   Future<Result<PaperOrder>> placePaperOrder(OrderRequest request) async {
     final result = await _paperApi.placeOrder(request);
     if (result.isSuccess) {
-      await loadPaperOrders();
+      await Future.wait([
+        loadPaperOrders(),
+        loadPaperPositions(),
+      ]);
+    }
+    return result;
+  }
+
+  /// Squares off an open paper position and refreshes state.
+  Future<Result<PaperOrder>> squareOffPaperPosition(int instrumentToken) async {
+    final result = await _paperApi.squareOffPosition(instrumentToken);
+    if (result.isSuccess) {
+      await Future.wait([
+        loadPaperOrders(),
+        loadPaperPositions(),
+      ]);
     }
     return result;
   }

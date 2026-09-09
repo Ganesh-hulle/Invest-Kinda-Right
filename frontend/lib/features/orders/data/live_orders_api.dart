@@ -62,4 +62,23 @@ class LiveOrdersApi {
       return Failure(UnknownFailure(e.toString()));
     }
   }
+
+  /// Retrieves all live orders for the current user.
+  Future<Result<List<LiveOrder>>> getOrders() async {
+    try {
+      final response = await dioClient.get('/api/v1/orders');
+      final data = response.data;
+      if (data is List) {
+        final orders = data
+            .map((e) => LiveOrder.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        return Success(orders);
+      }
+      return const Success([]);
+    } on DioException catch (e) {
+      return Failure(mapDioError(e));
+    } catch (e) {
+      return Failure(UnknownFailure(e.toString()));
+    }
+  }
 }

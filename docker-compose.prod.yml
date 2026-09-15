@@ -65,7 +65,7 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-PT24H}
       KITE_API_KEY: ${KITE_API_KEY:-}
       KITE_API_SECRET: ${KITE_API_SECRET:-}
-      KITE_REDIRECT_URL: ${KITE_REDIRECT_URL:-http://localhost:8080/api/v1/kite/callback}
+      KITE_REDIRECT_URL: ${KITE_REDIRECT_URL:-https://16-16-236-149.sslip.io/api/v1/kite/callback}
       KITE_TOKEN_ENCRYPTION_KEY: ${KITE_TOKEN_ENCRYPTION_KEY:-}
       WEBSOCKET_ALLOWED_ORIGINS: ${WEBSOCKET_ALLOWED_ORIGINS:-*}
     networks:
@@ -82,12 +82,23 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ikr-certbot-conf:/etc/letsencrypt:ro
+      - ikr-certbot-www:/var/www/certbot:ro
     depends_on:
       - backend
     networks:
       - ikr-network
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: ikr-certbot
+    volumes:
+      - ikr-certbot-conf:/etc/letsencrypt
+      - ikr-certbot-www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12d & wait $${!}; done;'"
 
 networks:
   ikr-network:
@@ -96,3 +107,7 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  ikr-certbot-conf:
+    external: true
+  ikr-certbot-www:
+    external: true

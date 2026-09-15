@@ -1,5 +1,6 @@
 --START Spring-Boot
 mvn clean spring-boot:run
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 --Completely ReSTART Docker
 docker compose up -d

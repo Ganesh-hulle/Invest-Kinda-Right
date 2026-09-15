@@ -45,14 +45,28 @@ class RegisterRequest {
 }
 
 class AuthResponse {
-  final String token;
+  final int? userId;
+  final String? username;
+  final String? token;
+  final String? message;
 
-  const AuthResponse({required this.token});
+  const AuthResponse({
+    this.userId,
+    this.username,
+    this.token,
+    this.message,
+  });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    final t = (json['token'] ?? json['accessToken'] ?? '') as String;
-    return AuthResponse(token: t);
+    return AuthResponse(
+      userId: (json['userId'] ?? json['id'] as num?)?.toInt(),
+      username: json['username'] as String?,
+      token: (json['token'] ?? json['accessToken']) as String?,
+      message: json['message'] as String?,
+    );
   }
+
+  bool get hasToken => token != null && token!.isNotEmpty;
 }
 
 class UserProfile {

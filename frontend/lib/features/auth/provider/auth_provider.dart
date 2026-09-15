@@ -20,7 +20,7 @@ class AuthUser {
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
-      id: json['id']?.toString() ?? '',
+      id: (json['id'] ?? json['userId'])?.toString() ?? '',
       username: (json['username'] as String?) ?? '',
       email: (json['email'] as String?) ?? '',
     );
@@ -122,12 +122,13 @@ class AuthProvider extends ChangeNotifier {
     return login(creds.username, creds.password);
   }
 
-  Future<Result<AuthUser>> register(
-    String username,
-    String email,
-    String password, {
-    String? firstname,
-    String? lastname,
+  Future<Result<AuthUser>> register({
+    required String username,
+    required String firstname,
+    required String lastname,
+    required String email,
+    required String password,
+    bool autoLogin = true,
   }) async {
     _isLoading = true;
     _error = null;
@@ -135,25 +136,25 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final response = await dioClient.post('/api/v1/auth/register', data: {
-        'username': username,
-        'firstname': firstname ?? username,
-        'lastname': lastname ?? '',
-        'email': email,
+        'username': username.trim(),
+        'firstname': firstname.trim(),
+        'lastname': lastname.trim(),
+        'email': email.trim(),
         'password': password,
       });
+
       final data = response.data as Map<String, dynamic>;
-      final token = (data['token'] ?? data['accessToken'] ?? '') as String;
-      if (token.isNotEmpty) {
-        await secureStorage.saveToken(token);
-        await secureStorage.saveBiometricCredentials(
-          username: username,
-          password: password,
-        );
+
+      if (autoLogin) {
+        // Automatically sign in with registered credentials to receive and store JWT
+        return await login(username.trim(), password);
       }
-      final user =
-          AuthUser.fromJson(data['user'] as Map<String, dynamic>? ?? data);
-      _user = user;
-      _isLoggedIn = true;
+
+      final user = AuthUser(
+        id: (data['userId'] ?? data['id'] ?? '')?.toString() ?? '',
+        username: (data['username'] as String?) ?? username.trim(),
+        email: email.trim(),
+      );
       _isLoading = false;
       notifyListeners();
       return Success(user);
@@ -163,6 +164,12 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return Failure(failure);
+    } catch (e) {
+      const failure = UnknownFailure('Unexpected error during registration.');
+      _error = failure.message;
+      _isLoading = false;
+      notifyListeners();
+      return const Failure(failure);
     }
   }
 

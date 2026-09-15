@@ -1,12 +1,27 @@
+docker compose -f docker-compose.prod.yml stop nginx
+
+sudo docker run -it --rm --name certbot \
+  -p 80:80 \
+  -v ikr-certbot-conf:/etc/letsencrypt \
+  -v ikr-certbot-www:/var/www/certbot \
+  certbot/certbot certonly \
+  --standalone \
+  -d 16-16-236-149.sslip.io \
+  --agree-tos \
+  -m gnhulle@gmail.com \
+  --no-eff-email
+
+
+cat << 'EOF' > infrastructure/nginx/conf.d/app.conf
 upstream backend_cluster {
     server backend:8080;
     keepalive 32;
 }
 
-# HTTP — Redirect to HTTPS & serve Certbot renewal challenges
+# HTTP — Redirect to HTTPS & serve Certbot renewal
 server {
     listen 80;
-    server_name 16-16-236-149.sslip.io _;
+    server_name 16-16-236-149.sslip.io;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -26,7 +41,6 @@ server {
     ssl_certificate /etc/letsencrypt/live/16-16-236-149.sslip.io/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/16-16-236-149.sslip.io/privkey.pem;
 
-    # Modern SSL security headers
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
     ssl_ciphers HIGH:!aNULL:!MD5;
@@ -78,3 +92,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
 }
+EOF
+
+
+docker compose -f docker-compose.prod.yml up -d

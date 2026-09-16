@@ -79,7 +79,10 @@ void main() async {
               ),
         ),
         ChangeNotifierProvider(
-          create: (_) => PortfolioProvider(dioClient: dioClient),
+          create: (_) => PortfolioProvider(
+            dioClient: dioClient,
+            wsService: wsService,
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => OrdersProvider(dioClient: dioClient),

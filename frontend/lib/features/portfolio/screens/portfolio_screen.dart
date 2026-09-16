@@ -10,6 +10,7 @@ import '../model/portfolio_models.dart';
 import '../provider/portfolio_provider.dart';
 import '../widgets/portfolio_detail_sheet.dart';
 import '../../kite/provider/kite_provider.dart';
+import '../../watchlist/widgets/live_ticker_price.dart';
 
 class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
@@ -28,13 +29,21 @@ class _PortfolioScreenState extends State<PortfolioScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PortfolioProvider>().load();
     });
   }
 
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -43,8 +52,15 @@ class _PortfolioScreenState extends State<PortfolioScreen>
 
   @override
   Widget build(BuildContext context) {
+    final kite = context.watch<KiteProvider>();
+
     return Consumer<PortfolioProvider>(
       builder: (context, provider, _) {
+        final hasItems = provider.holdings.isNotEmpty ||
+            provider.netPositions.isNotEmpty ||
+            provider.dayPositions.isNotEmpty;
+        final showBottomBar = kite.isConnected && !provider.isLoading && hasItems;
+
         return Scaffold(
           backgroundColor: AppColors.surface,
           body: NestedScrollView(
@@ -74,18 +90,23 @@ class _PortfolioScreenState extends State<PortfolioScreen>
             ],
             body: provider.isLoading
                 ? const ShimmerLoader(itemCount: 8)
-                : _buildBody(provider),
+                : _buildBody(provider, kite),
           ),
+          bottomNavigationBar: showBottomBar
+              ? _DayPnlBottomBar(
+                  provider: provider,
+                  activeTab: _tabController.index,
+                  fmt: _currencyFmt,
+                )
+              : null,
         );
       },
     );
   }
 
-  Widget _buildBody(PortfolioProvider provider) {
-    final kite = context.watch<KiteProvider>();
-
+  Widget _buildBody(PortfolioProvider provider, KiteProvider kite) {
     if (!kite.isConnected && !provider.isLoading) {
-      return _EmptyKiteState();
+      return const _EmptyKiteState();
     }
 
     if (provider.error != null &&
@@ -149,7 +170,7 @@ class _SummaryBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Total P&L',
                   style: TextStyle(
                     fontSize: 11,
@@ -215,7 +236,7 @@ class _HoldingsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return _EmptyList(message: 'No holdings yet.');
+      return const _EmptyList(message: 'No holdings yet.');
     }
 
     return RefreshIndicator(
@@ -226,7 +247,7 @@ class _HoldingsList extends StatelessWidget {
         padding: EdgeInsets.zero,
         itemCount: items.length,
         separatorBuilder: (_, __) =>
-            Divider(height: 1, color: AppColors.divider),
+            const Divider(height: 1, color: AppColors.divider),
         itemBuilder: (_, index) => _HoldingTile(item: items[index], fmt: fmt),
       ),
     );
@@ -241,23 +262,36 @@ class _HoldingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasDayChange = item.dayChangePercentage != 0.0;
+    final isDayPositive = item.dayChangePercentage >= 0;
+    final dayColor = isDayPositive ? AppColors.buy : AppColors.sell;
+
+    final isPnlPositive = item.pnl >= 0;
+    final isPnlZero = item.pnl.abs() < 0.001;
+    final pnlColor = isPnlZero
+        ? AppColors.onSurfaceMuted
+        : (isPnlPositive ? AppColors.buy : AppColors.sell);
+    final pnlSign = isPnlPositive ? '+' : '-';
+    final pnlPctSign = isPnlPositive ? '+' : '';
+
     return InkWell(
       onTap: () => PortfolioDetailSheet.show(context, holding: item),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          children: [
+            // Top Row: Instrument Symbol & Exchange on left, Total Unrealised P&L on right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       item.tradingsymbol,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: AppColors.onSurface,
                       ),
@@ -266,37 +300,87 @@ class _HoldingTile extends StatelessWidget {
                     _ExchangeChip(exchange: item.exchange),
                   ],
                 ),
-                const SizedBox(height: 4),
+                // Total Unrealised P&L per instrument (Amount and %)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isPnlZero
+                          ? '₹0.00'
+                          : '$pnlSign${fmt.format(item.pnl.abs())}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: pnlColor,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '($pnlPctSign${item.totalPnlPercent.toStringAsFixed(2)}%)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: pnlColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            // Bottom Row: Qty & Avg on left, Live Price (with green/red blink) & Day Change on right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
                 Text(
-                  '${item.quantity} × ${fmt.format(item.averagePrice)}',
+                  '${item.quantity} Qty. · Avg. ${fmt.format(item.averagePrice)}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.onSurfaceMuted,
                   ),
                 ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'LTP ',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.onSurfaceMuted,
+                        fontWeight: FontWeight.w200,
+                      ),
+                    ),
+                    LiveTickerPrice(
+                      price: item.lastPrice,
+                      previousPrice: item.previousPrice,
+                      direction: item.priceDirection,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w300,
+                        color: dayColor,
+                      ),
+                    ),
+                    if (hasDayChange) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '${isDayPositive ? '+' : ''}${item.dayChangePercentage.toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w200,
+                          color: dayColor,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                fmt.format(item.lastPrice),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 4),
-              PnlChip(value: item.pnl),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 // ── Positions List ────────────────────────────────────────────────────────────
@@ -315,7 +399,7 @@ class _PositionsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return _EmptyList(message: 'No positions open.');
+      return const _EmptyList(message: 'No positions open.');
     }
 
     return RefreshIndicator(
@@ -326,7 +410,7 @@ class _PositionsList extends StatelessWidget {
         padding: EdgeInsets.zero,
         itemCount: items.length,
         separatorBuilder: (_, __) =>
-            Divider(height: 1, color: AppColors.divider),
+            const Divider(height: 1, color: AppColors.divider),
         itemBuilder: (_, index) => _PositionTile(item: items[index], fmt: fmt),
       ),
     );
@@ -341,75 +425,135 @@ class _PositionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasDayChange = item.dayChangePercentage != 0.0;
+    final isDayPositive = item.dayChangePercentage >= 0;
+    final dayColor = isDayPositive ? AppColors.buy : AppColors.sell;
+
+    final isPnlPositive = item.pnl >= 0;
+    final isPnlZero = item.pnl.abs() < 0.001;
+    final pnlColor = isPnlZero
+        ? AppColors.onSurfaceMuted
+        : (isPnlPositive ? AppColors.buy : AppColors.sell);
+    final pnlSign = isPnlPositive ? '+' : '-';
+    final pnlPctSign = isPnlPositive ? '+' : '';
+
     return InkWell(
       onTap: () => PortfolioDetailSheet.show(context, position: item),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        item.tradingsymbol,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
-                        ),
+            // Top Row: Symbol, Exchange & Product on left, Total Unrealised P&L on right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.tradingsymbol,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
                       ),
-                      const SizedBox(width: 8),
-                      _ExchangeChip(exchange: item.exchange),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        'Qty ${item.quantity}  ·  ',
+                    ),
+                    const SizedBox(width: 8),
+                    _ExchangeChip(exchange: item.exchange),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant2,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        item.product,
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 10,
                           color: AppColors.onSurfaceMuted,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant2,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          item.product,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.onSurfaceMuted,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    ),
+                  ],
+                ),
+                // Total Unrealised P&L per position (Amount and %)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isPnlZero
+                          ? '₹0.00'
+                          : '$pnlSign${fmt.format(item.pnl.abs())}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: pnlColor,
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '($pnlPctSign${item.totalPnlPercent.toStringAsFixed(2)}%)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: pnlColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            const SizedBox(height: 6),
+            // Bottom Row: Qty & Avg on left, Live Price (with green/red blink) & Day Change on right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  fmt.format(item.lastPrice),
+                  '${item.quantity} Qty. · Avg. ${fmt.format(item.averagePrice)}',
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
+                    fontSize: 12,
+                    color: AppColors.onSurfaceMuted,
                   ),
                 ),
-                const SizedBox(height: 4),
-                PnlChip(value: item.pnl),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'LTP ',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.onSurfaceMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    LiveTickerPrice(
+                      price: item.lastPrice,
+                      previousPrice: item.previousPrice,
+                      direction: item.priceDirection,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: dayColor,
+                      ),
+                    ),
+                    if (hasDayChange) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '${isDayPositive ? '+' : ''}${item.dayChangePercentage.toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: dayColor,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ],
@@ -457,7 +601,7 @@ class _EmptyList extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox_outlined, size: 48, color: AppColors.onSurfaceMuted),
+          const Icon(Icons.inbox_outlined, size: 48, color: AppColors.onSurfaceMuted),
           const SizedBox(height: 12),
           Text(
             message,
@@ -471,6 +615,8 @@ class _EmptyList extends StatelessWidget {
 }
 
 class _EmptyKiteState extends StatelessWidget {
+  const _EmptyKiteState();
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -538,7 +684,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline_rounded, size: 48, color: AppColors.sell),
+            const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.sell),
             const SizedBox(height: 12),
             Text(
               message,
@@ -552,6 +698,151 @@ class _ErrorState extends StatelessWidget {
               child: const Text('Retry'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Day P&L Bottom Bar ────────────────────────────────────────────────────────
+
+class _DayPnlBottomBar extends StatelessWidget {
+  final PortfolioProvider provider;
+  final int activeTab;
+  final NumberFormat fmt;
+
+  const _DayPnlBottomBar({
+    required this.provider,
+    required this.activeTab,
+    required this.fmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dayPnl = provider.dayPnlForTab(activeTab);
+    final dayPnlPct = provider.dayPnlPercentageForTab(activeTab);
+    final isPositive = dayPnl >= 0;
+    final isZero = dayPnl.abs() < 0.001;
+    final color = isZero
+        ? AppColors.onSurface
+        : (isPositive ? AppColors.buy : AppColors.sell);
+    final sign = isPositive ? '+' : '-';
+    final pctSign = isPositive ? '+' : '';
+
+    String tabLabel;
+    switch (activeTab) {
+      case 0:
+        tabLabel = 'Holdings';
+        break;
+      case 1:
+        tabLabel = 'Net Positions';
+        break;
+      case 2:
+        tabLabel = 'Day Positions';
+        break;
+      default:
+        tabLabel = 'Portfolio';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        border: const Border(
+          top: BorderSide(color: AppColors.divider, width: 1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withAlpha(25),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      isPositive
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      color: color,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Day's P&L",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        tabLabel,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.onSurfaceMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isZero
+                        ? '₹0.00'
+                        : '$sign${fmt.format(dayPnl.abs())}',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: color.withAlpha(20),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '$pctSign${dayPnlPct.toStringAsFixed(2)}%',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

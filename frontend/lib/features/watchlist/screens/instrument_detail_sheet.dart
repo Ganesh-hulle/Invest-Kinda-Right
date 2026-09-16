@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/result.dart';
 import '../../../core/network/api_exception.dart';
@@ -98,12 +99,12 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceVariant,
-        title: const Text('Remove from Watchlist',
-            style: TextStyle(color: AppColors.onSurface)),
+        backgroundColor: ctx.colors.surfaceVariant,
+        title: Text('Remove from Watchlist',
+            style: TextStyle(color: ctx.colors.onSurface)),
         content: Text(
           'Remove ${widget.item.tradingsymbol} from your watchlist?',
-          style: const TextStyle(color: AppColors.onSurfaceMuted),
+          style: TextStyle(color: ctx.colors.onSurfaceMuted),
         ),
         actions: [
           TextButton(
@@ -247,26 +248,26 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceVariant,
-        title: const Row(
+        backgroundColor: ctx.colors.surfaceVariant,
+        title: Row(
           children: [
-            Icon(Icons.link_off_rounded, color: AppColors.warning),
-            SizedBox(width: 8),
+            const Icon(Icons.link_off_rounded, color: AppColors.warning),
+            const SizedBox(width: 8),
             Text(
               'Kite Not Connected',
-              style: TextStyle(color: AppColors.onSurface, fontSize: 18),
+              style: TextStyle(color: ctx.colors.onSurface, fontSize: 18),
             ),
           ],
         ),
-        content: const Text(
+        content: Text(
           'Zerodha Kite account is required to fetch historical candle data from Kite Connect API. Would you like to connect your Kite account now?',
-          style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 14),
+          style: TextStyle(color: ctx.colors.onSurfaceMuted, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.onSurfaceMuted)),
+            child: Text('Cancel',
+                style: TextStyle(color: ctx.colors.onSurfaceMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -292,6 +293,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0.00');
+    final colors = context.colors;
     final liveItems = context.watch<WatchlistProvider>().items;
     final item = liveItems.firstWhere(
       (i) => i.instrumentToken == widget.item.instrumentToken,
@@ -299,9 +301,9 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
     );
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
         top: false,
@@ -317,7 +319,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.divider,
+                    color: colors.divider,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -333,8 +335,8 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                       children: [
                         Text(
                           item.tradingsymbol,
-                          style: const TextStyle(
-                            color: AppColors.onSurface,
+                          style: TextStyle(
+                            color: colors.onSurface,
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
                           ),
@@ -346,13 +348,13 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceVariant2,
+                                color: colors.surfaceVariant2,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 item.exchange,
-                                style: const TextStyle(
-                                    color: AppColors.onSurfaceMuted,
+                                style: TextStyle(
+                                    color: colors.onSurfaceMuted,
                                     fontSize: 11),
                               ),
                             ),
@@ -381,8 +383,8 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                     price: item.lastPrice,
                     previousPrice: item.previousPrice,
                     direction: item.priceDirection,
-                    style: const TextStyle(
-                      color: AppColors.onSurface,
+                    style: TextStyle(
+                      color: colors.onSurface,
                       fontSize: 30,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
@@ -425,7 +427,7 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
               ],
 
               const SizedBox(height: 20),
-              const Divider(color: AppColors.divider),
+              Divider(color: colors.divider),
               const SizedBox(height: 16),
 
               // Indicators panel
@@ -434,10 +436,10 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                 children: [
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'INDICATORS',
                         style: TextStyle(
-                          color: AppColors.onSurfaceMuted,
+                          color: colors.onSurfaceMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1,
@@ -448,10 +450,10 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.info_outline_rounded,
                           size: 15,
-                          color: AppColors.onSurfaceMuted,
+                          color: colors.onSurfaceMuted,
                         ),
                         tooltip: 'Indicator & Signal Guide',
                         onPressed: () => showIndicatorGuideSheet(context),
@@ -477,19 +479,19 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppColors.primary
-                                    : AppColors.surfaceVariant2,
+                                    : colors.surfaceVariant2,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 label,
                                 style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.onSurfaceMuted,
+                                    fontSize: 10,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : colors.onSurfaceMuted,
                                 ),
                               ),
                             ),
@@ -545,23 +547,23 @@ class _InstrumentDetailSheetState extends State<InstrumentDetailSheet> {
                   padding: const EdgeInsets.symmetric(
                       vertical: 16, horizontal: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant2,
+                    color: colors.surfaceVariant2,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.divider),
+                    border: Border.all(color: colors.divider),
                   ),
                   child: Column(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.candlestick_chart_outlined,
                         size: 30,
-                        color: AppColors.onSurfaceMuted,
+                        color: colors.onSurfaceMuted,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         _indicatorError!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.onSurfaceMuted,
+                        style: TextStyle(
+                          color: colors.onSurfaceMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -763,7 +765,7 @@ class _IndicatorPanel extends StatelessWidget {
               ? AppColors.sell
               : indicators.rsi14 < 30
                   ? AppColors.buy
-                  : AppColors.onSurface,
+                  : context.colors.onSurface,
           signalAction: rsiAction,
         ),
         _IndicatorTile(
@@ -829,9 +831,9 @@ class _IndicatorTile extends StatelessWidget {
         tagIcon = Icons.arrow_downward_rounded;
         break;
       case SignalAction.neutral:
-        borderColor = AppColors.divider;
-        bgColor = AppColors.surfaceVariant2;
-        tagColor = AppColors.onSurfaceMuted;
+        borderColor = context.colors.divider;
+        bgColor = context.colors.surfaceVariant2;
+        tagColor = context.colors.onSurfaceMuted;
         tagLabel = '—';
         tagIcon = null;
         break;
@@ -860,8 +862,8 @@ class _IndicatorTile extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.onSurfaceMuted,
+                style: TextStyle(
+                  color: context.colors.onSurfaceMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),
@@ -981,14 +983,15 @@ class _PlaceOrderSheetState extends State<_PlaceOrderSheet> {
   @override
   Widget build(BuildContext context) {
     final isBuy = _transactionType == 'BUY';
+    final colors = context.colors;
 
     return Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: colors.surfaceVariant,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         child: Column(
@@ -1000,7 +1003,7 @@ class _PlaceOrderSheetState extends State<_PlaceOrderSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: colors.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1008,8 +1011,8 @@ class _PlaceOrderSheetState extends State<_PlaceOrderSheet> {
             const SizedBox(height: 20),
             Text(
               'Paper Trade · ${widget.item.tradingsymbol}',
-              style: const TextStyle(
-                color: AppColors.onSurface,
+              style: TextStyle(
+                color: colors.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
@@ -1019,7 +1022,7 @@ class _PlaceOrderSheetState extends State<_PlaceOrderSheet> {
             // BUY / SELL toggle
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant2,
+                color: colors.surfaceVariant2,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -1047,7 +1050,7 @@ class _PlaceOrderSheetState extends State<_PlaceOrderSheet> {
                   child: TextField(
                     controller: _qtyCtrl,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: AppColors.onSurface),
+                    style: TextStyle(color: colors.onSurface),
                     decoration: const InputDecoration(labelText: 'Quantity'),
                   ),
                 ),
@@ -1057,7 +1060,7 @@ class _PlaceOrderSheetState extends State<_PlaceOrderSheet> {
                     controller: _priceCtrl,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: AppColors.onSurface),
+                    style: TextStyle(color: colors.onSurface),
                     decoration: const InputDecoration(labelText: 'Price (₹)'),
                   ),
                 ),
@@ -1120,7 +1123,7 @@ class _TypeButton extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? color : AppColors.onSurfaceMuted,
+              color: isSelected ? color : context.colors.onSurfaceMuted,
               fontWeight: FontWeight.w700,
               fontSize: 14,
             ),

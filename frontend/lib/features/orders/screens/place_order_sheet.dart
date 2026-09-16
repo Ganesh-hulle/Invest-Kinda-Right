@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/error_snackbar.dart';
 import '../model/order_models.dart';
 import '../provider/orders_provider.dart';
@@ -153,9 +154,9 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
 
     return Container(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceVariant,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -168,7 +169,7 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.onSurfaceSubtle,
+                  color: context.colors.onSurfaceSubtle,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -186,18 +187,18 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
                         _symbolCtrl.text.isNotEmpty
                             ? _symbolCtrl.text
                             : 'New Order',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
+                          color: context.colors.onSurface,
                         ),
                       ),
                       if (widget.exchange != null)
                         Text(
                           widget.exchange!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.onSurfaceMuted,
+                            color: context.colors.onSurfaceMuted,
                           ),
                         ),
                     ],
@@ -206,7 +207,7 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
                 // Paper / Live toggle
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant2,
+                    color: context.colors.surfaceVariant2,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -231,7 +232,7 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
                               fontWeight: FontWeight.bold,
                               color: _isPaper
                                   ? Colors.white
-                                  : AppColors.onSurfaceMuted,
+                                  : context.colors.onSurfaceMuted,
                             ),
                           ),
                         ),
@@ -256,7 +257,7 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
                               fontWeight: FontWeight.bold,
                               color: !_isPaper
                                   ? Colors.black
-                                  : AppColors.onSurfaceMuted,
+                                  : context.colors.onSurfaceMuted,
                             ),
                           ),
                         ),
@@ -276,10 +277,10 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
                     style: FilledButton.styleFrom(
                       backgroundColor: isBuy
                           ? AppColors.buy
-                          : AppColors.surfaceVariant2,
+                          : context.colors.surfaceVariant2,
                       foregroundColor: isBuy
                           ? Colors.white
-                          : AppColors.onSurfaceMuted,
+                          : context.colors.onSurfaceMuted,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -298,10 +299,10 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
                     style: FilledButton.styleFrom(
                       backgroundColor: !isBuy
                           ? AppColors.sell
-                          : AppColors.surfaceVariant2,
+                          : context.colors.surfaceVariant2,
                       foregroundColor: !isBuy
                           ? Colors.white
-                          : AppColors.onSurfaceMuted,
+                          : context.colors.onSurfaceMuted,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -321,9 +322,9 @@ class _PlaceOrderSheetState extends State<PlaceOrderSheet> {
             // Order type (MARKET / LIMIT)
             Row(
               children: [
-                const Text(
+                Text(
                   'Type:',
-                  style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13),
+                  style: TextStyle(color: context.colors.onSurfaceMuted, fontSize: 13),
                 ),
                 const SizedBox(width: 12),
                 ChoiceChip(

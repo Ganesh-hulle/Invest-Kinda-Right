@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../model/order_models.dart';
 import '../provider/orders_provider.dart';
@@ -50,15 +51,14 @@ class _OrdersScreenState extends State<OrdersScreen>
     return Consumer<OrdersProvider>(
       builder: (context, provider, _) {
         return Scaffold(
-          backgroundColor: AppColors.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? context.colors.surface,
             title: const Text('Orders'),
             bottom: TabBar(
               controller: _tabController,
               indicatorColor: AppColors.primary,
               labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.onSurfaceMuted,
+              unselectedLabelColor: context.colors.onSurfaceMuted,
               tabs: const [
                 Tab(text: 'Paper'),
                 Tab(text: 'Live'),
@@ -101,7 +101,7 @@ class _PaperTab extends StatelessWidget {
 
     return RefreshIndicator(
       color: AppColors.primary,
-      backgroundColor: AppColors.surfaceVariant,
+      backgroundColor: context.colors.surfaceVariant,
       onRefresh: onRefresh,
       child: CustomScrollView(
         slivers: [
@@ -128,7 +128,7 @@ class _PaperTab extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.onSurfaceMuted,
+                    color: context.colors.onSurfaceMuted,
                   ),
                 ),
               ),
@@ -140,7 +140,7 @@ class _PaperTab extends StatelessWidget {
                   return Column(
                     children: [
                       _OrderTile(order: o),
-                      Divider(height: 1, color: AppColors.divider),
+                      Divider(height: 1, color: context.colors.divider),
                     ],
                   );
                 },
@@ -166,7 +166,7 @@ class _PositionsCard extends StatelessWidget {
         NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
 
     return Card(
-      color: AppColors.surfaceVariant,
+      color: context.colors.surfaceVariant,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -177,20 +177,20 @@ class _PositionsCard extends StatelessWidget {
                 const Icon(Icons.inventory_2_outlined,
                     size: 16, color: AppColors.primary),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   'Open Positions',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
+                    color: context.colors.onSurface,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '${positions.length} position${positions.length > 1 ? 's' : ''}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.onSurfaceMuted,
+                    color: context.colors.onSurfaceMuted,
                   ),
                 ),
               ],
@@ -207,17 +207,17 @@ class _PositionsCard extends StatelessWidget {
                         children: [
                           Text(
                             p.tradingsymbol,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.onSurface,
+                              color: context.colors.onSurface,
                             ),
                           ),
                           Text(
                             'Qty ${p.quantity}  ·  Avg ${fmt.format(p.averagePrice)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.onSurfaceMuted,
+                              color: context.colors.onSurfaceMuted,
                             ),
                           ),
                         ],
@@ -228,10 +228,10 @@ class _PositionsCard extends StatelessWidget {
                       children: [
                         Text(
                           fmt.format(p.lastPrice),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
+                            color: context.colors.onSurface,
                           ),
                         ),
                         _PnlText(value: p.unrealizedPnl),
@@ -243,12 +243,12 @@ class _PositionsCard extends StatelessWidget {
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            backgroundColor: AppColors.surfaceVariant,
-                            title: const Text('Square Off Position',
-                                style: TextStyle(color: AppColors.onSurface, fontSize: 16)),
+                            backgroundColor: ctx.colors.surfaceVariant,
+                            title: Text('Square Off Position',
+                                style: TextStyle(color: ctx.colors.onSurface, fontSize: 16)),
                             content: Text(
                               'Exit ${p.quantity} qty of ${p.tradingsymbol} at market price?',
-                              style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13),
+                              style: TextStyle(color: ctx.colors.onSurfaceMuted, fontSize: 13),
                             ),
                             actions: [
                               TextButton(
@@ -275,7 +275,7 @@ class _PositionsCard extends StatelessWidget {
                               onSuccess: (_) => ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Squared off ${p.tradingsymbol}'),
-                                  backgroundColor: AppColors.surfaceVariant,
+                                  backgroundColor: context.colors.surfaceVariant,
                                 ),
                               ),
                               onFailure: (err) => ScaffoldMessenger.of(context).showSnackBar(
@@ -357,7 +357,7 @@ class _LiveTab extends StatelessWidget {
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemCount: orders.length,
-      separatorBuilder: (_, __) => Divider(height: 1, color: AppColors.divider),
+      separatorBuilder: (_, __) => Divider(height: 1, color: context.colors.divider),
       itemBuilder: (_, index) => _LiveOrderTile(order: orders[index]),
     );
   }
@@ -372,7 +372,7 @@ class _LiveDisabledCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Card(
-          color: AppColors.surfaceVariant,
+          color: context.colors.surfaceVariant,
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -392,21 +392,21 @@ class _LiveDisabledCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Live Trading Disabled',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: context.colors.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Live order execution is currently disabled on this account. '
                   'Use Paper trading mode to practice strategies without risk.',
                   textAlign: TextAlign.center,
                   style:
-                      TextStyle(fontSize: 13, color: AppColors.onSurfaceMuted),
+                      TextStyle(fontSize: 13, color: context.colors.onSurfaceMuted),
                 ),
               ],
             ),
@@ -441,10 +441,10 @@ class _OrderTile extends StatelessWidget {
                   children: [
                     Text(
                       order.tradingsymbol,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        color: context.colors.onSurface,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -454,9 +454,9 @@ class _OrderTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${order.quantity} @ ${fmt.format(order.price)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.onSurfaceMuted,
+                    color: context.colors.onSurfaceMuted,
                   ),
                 ),
               ],
@@ -491,10 +491,10 @@ class _LiveOrderTile extends StatelessWidget {
                   children: [
                     Text(
                       order.tradingsymbol,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        color: context.colors.onSurface,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -504,17 +504,17 @@ class _LiveOrderTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${order.quantity} @ ${fmt.format(order.price)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.onSurfaceMuted,
+                    color: context.colors.onSurfaceMuted,
                   ),
                 ),
                 if (order.brokerOrderId != null)
                   Text(
                     'Broker ID: ${order.brokerOrderId}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.onSurfaceSubtle,
+                      color: context.colors.onSurfaceSubtle,
                     ),
                   ),
               ],
@@ -608,18 +608,18 @@ class _EmptyOrders extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.receipt_long_outlined,
-              size: 48, color: AppColors.onSurfaceMuted),
+              size: 48, color: context.colors.onSurfaceMuted),
           const SizedBox(height: 12),
           Text(
             message,
             style:
-                const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 14),
+                TextStyle(color: context.colors.onSurfaceMuted, fontSize: 14),
           ),
           const SizedBox(height: 8),
           Text(
             'Tap + to place an order',
             style:
-                const TextStyle(color: AppColors.onSurfaceSubtle, fontSize: 12),
+                TextStyle(color: context.colors.onSurfaceSubtle, fontSize: 12),
           ),
         ],
       ),

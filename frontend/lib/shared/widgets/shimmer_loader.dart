@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Shimmer placeholder for list rows during loading.
 class ShimmerLoader extends StatelessWidget {
@@ -15,16 +15,21 @@ class ShimmerLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isDark = context.isDarkMode;
+    final baseColor = isDark ? colors.surfaceVariant : const Color(0xFFE5E7EB);
+    final highlightColor = isDark ? colors.surfaceVariant2 : const Color(0xFFF9FAFB);
+
     return Shimmer.fromColors(
-      baseColor: AppColors.surfaceVariant,
-      highlightColor: AppColors.surfaceVariant2,
+      baseColor: baseColor,
+      highlightColor: highlightColor,
       child: ListView.separated(
         physics: const NeverScrollableScrollPhysics(),
         shrinkWrap: true,
         itemCount: itemCount,
         separatorBuilder: (_, __) => Divider(
           height: 1,
-          color: AppColors.divider,
+          color: colors.divider,
         ),
         itemBuilder: (_, __) => Container(
           height: itemHeight,
@@ -35,7 +40,7 @@ class ShimmerLoader extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant2,
+                  color: baseColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
@@ -49,7 +54,7 @@ class ShimmerLoader extends StatelessWidget {
                       height: 14,
                       width: 120,
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant2,
+                        color: baseColor,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -58,7 +63,7 @@ class ShimmerLoader extends StatelessWidget {
                       height: 12,
                       width: 80,
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant2,
+                        color: baseColor,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -73,7 +78,7 @@ class ShimmerLoader extends StatelessWidget {
                     height: 14,
                     width: 70,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant2,
+                      color: baseColor,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -82,7 +87,7 @@ class ShimmerLoader extends StatelessWidget {
                     height: 12,
                     width: 50,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant2,
+                      color: baseColor,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -111,17 +116,23 @@ class ShimmerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isDark = context.isDarkMode;
+    final baseColor = isDark ? colors.surfaceVariant : const Color(0xFFE5E7EB);
+    final highlightColor = isDark ? colors.surfaceVariant2 : const Color(0xFFF9FAFB);
+
     return Shimmer.fromColors(
-      baseColor: AppColors.surfaceVariant,
-      highlightColor: AppColors.surfaceVariant2,
+      baseColor: baseColor,
+      highlightColor: highlightColor,
       child: Container(
         height: height,
         width: width,
         decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
+          color: baseColor,
           borderRadius: borderRadius ?? BorderRadius.circular(12),
         ),
       ),
     );
   }
 }
+

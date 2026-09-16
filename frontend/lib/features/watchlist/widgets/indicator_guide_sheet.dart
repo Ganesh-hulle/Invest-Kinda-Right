@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// Opens the Indicator and Signal Guide bottom sheet.
 void showIndicatorGuideSheet(BuildContext context) {
@@ -12,6 +13,8 @@ void showIndicatorGuideSheet(BuildContext context) {
   );
 }
 
+/// Zerodha / TradingView style educational modal guide explaining all technical
+/// indicators and multi-indicator confluence strategies used across IKR.
 class IndicatorGuideSheet extends StatefulWidget {
   const IndicatorGuideSheet({super.key});
 
@@ -34,15 +37,17 @@ class _IndicatorGuideSheetState extends State<IndicatorGuideSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceVariant,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: colors.surfaceVariant,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -56,7 +61,7 @@ class _IndicatorGuideSheetState extends State<IndicatorGuideSheet> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.divider,
+                          color: colors.divider,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -77,23 +82,23 @@ class _IndicatorGuideSheetState extends State<IndicatorGuideSheet> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Indicator & Signal Guide',
                                 style: TextStyle(
-                                  color: AppColors.onSurface,
+                                  color: colors.onSurface,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
                                 'What each indicator means & high-probability BUY / SELL signs',
                                 style: TextStyle(
-                                  color: AppColors.onSurfaceMuted,
+                                  color: colors.onSurfaceMuted,
                                   fontSize: 11,
                                 ),
                               ),
@@ -101,7 +106,7 @@ class _IndicatorGuideSheetState extends State<IndicatorGuideSheet> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
+                          icon: Icon(Icons.close_rounded, color: colors.onSurfaceMuted),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                       ],
@@ -126,14 +131,14 @@ class _IndicatorGuideSheetState extends State<IndicatorGuideSheet> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? Colors.black : AppColors.onSurfaceMuted,
+                          color: isSelected ? Colors.black : colors.onSurfaceMuted,
                         ),
                       ),
                       selected: isSelected,
                       selectedColor: AppColors.primary,
-                      backgroundColor: AppColors.surfaceVariant2,
+                      backgroundColor: colors.surfaceVariant2,
                       side: BorderSide(
-                        color: isSelected ? AppColors.primary : AppColors.divider,
+                        color: isSelected ? AppColors.primary : colors.divider,
                       ),
                       onSelected: (val) {
                         if (val) setState(() => _selectedFilterIndex = index);
@@ -144,7 +149,7 @@ class _IndicatorGuideSheetState extends State<IndicatorGuideSheet> {
               ),
 
               const SizedBox(height: 8),
-              const Divider(color: AppColors.divider, height: 1),
+              Divider(color: colors.divider, height: 1),
 
               // Guide content list
               Expanded(
@@ -255,17 +260,18 @@ class _ConfluenceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant2,
+        color: colors.surfaceVariant2,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withAlpha(90)),
         gradient: LinearGradient(
           colors: [
             AppColors.primary.withAlpha(25),
-            AppColors.surfaceVariant2,
+            colors.surfaceVariant2,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -409,13 +415,14 @@ class _IndicatorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant2,
+        color: colors.surfaceVariant2,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: colors.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,8 +437,8 @@ class _IndicatorCard extends StatelessWidget {
                   children: [
                     Text(
                       indicatorName,
-                      style: const TextStyle(
-                        color: AppColors.onSurface,
+                      style: TextStyle(
+                        color: colors.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -572,7 +579,7 @@ class _IndicatorCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.surfaceVariant3,
+              color: colors.surfaceVariant3,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -584,8 +591,8 @@ class _IndicatorCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Tip: $proTip',
-                    style: const TextStyle(
-                      color: AppColors.onSurfaceMuted,
+                    style: TextStyle(
+                      color: colors.onSurfaceMuted,
                       fontSize: 11,
                       fontStyle: FontStyle.italic,
                     ),
@@ -607,12 +614,13 @@ class _SignalBadgeCheatSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant2,
+        color: colors.surfaceVariant2,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: colors.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

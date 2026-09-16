@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../../../shared/widgets/error_snackbar.dart';
 import '../data/watchlist_api.dart';
@@ -88,30 +89,30 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
         title: SearchBar(
           controller: _searchCtrl,
           hintText: 'Search instruments (e.g. RELIANCE, NIFTY)',
           autoFocus: true,
-          backgroundColor: WidgetStateProperty.all(AppColors.surfaceVariant),
+          backgroundColor: WidgetStateProperty.all(colors.surfaceVariant),
           shadowColor: WidgetStateProperty.all(Colors.transparent),
-          side: WidgetStateProperty.all(const BorderSide(color: AppColors.divider)),
+          side: WidgetStateProperty.all(BorderSide(color: colors.divider)),
           hintStyle: WidgetStateProperty.all(
-            const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 14),
+            TextStyle(color: colors.onSurfaceMuted, fontSize: 14),
           ),
           textStyle: WidgetStateProperty.all(
-            const TextStyle(color: AppColors.onSurface, fontSize: 14),
+            TextStyle(color: colors.onSurface, fontSize: 14),
           ),
-          leading: const Icon(Icons.search_rounded,
-              color: AppColors.onSurfaceMuted, size: 20),
+          leading: Icon(Icons.search_rounded,
+              color: colors.onSurfaceMuted, size: 20),
           trailing: [
             if (_searchCtrl.text.isNotEmpty)
               IconButton(
-                icon: const Icon(Icons.clear_rounded,
-                    size: 18, color: AppColors.onSurfaceMuted),
+                icon: Icon(Icons.clear_rounded,
+                    size: 18, color: colors.onSurfaceMuted),
                 onPressed: () {
                   _searchCtrl.clear();
                   setState(() {
@@ -144,19 +145,19 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.search_off_rounded,
-                      size: 56, color: AppColors.onSurfaceMuted),
+                  Icon(Icons.search_off_rounded,
+                      size: 56, color: colors.onSurfaceMuted),
                   const SizedBox(height: 16),
                   Text(
                     'No results for "$query"',
-                    style: const TextStyle(
-                        color: AppColors.onSurface, fontSize: 16),
+                    style: TextStyle(
+                        color: colors.onSurface, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Try a different symbol or name',
                     style: TextStyle(
-                        color: AppColors.onSurfaceMuted, fontSize: 13),
+                        color: colors.onSurfaceMuted, fontSize: 13),
                   ),
                 ],
               ),
@@ -164,17 +165,17 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
           }
 
           if (query.length < 2) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.manage_search_rounded,
-                      size: 56, color: AppColors.onSurfaceMuted),
-                  SizedBox(height: 16),
+                      size: 56, color: colors.onSurfaceMuted),
+                  const SizedBox(height: 16),
                   Text(
                     'Search for stocks, ETFs, F&O',
                     style: TextStyle(
-                        color: AppColors.onSurfaceMuted, fontSize: 14),
+                        color: colors.onSurfaceMuted, fontSize: 14),
                   ),
                 ],
               ),
@@ -187,7 +188,7 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
           return ListView.separated(
             itemCount: _results.length,
             separatorBuilder: (_, __) =>
-                const Divider(height: 1, color: AppColors.divider),
+                Divider(height: 1, color: colors.divider),
             itemBuilder: (context, index) {
               final instrument = _results[index];
               final alreadyAdded =
@@ -201,8 +202,8 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
                     Expanded(
                       child: Text(
                         instrument.tradingsymbol,
-                        style: const TextStyle(
-                          color: AppColors.onSurface,
+                        style: TextStyle(
+                          color: colors.onSurface,
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
                         ),
@@ -212,13 +213,13 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant2,
+                        color: colors.surfaceVariant2,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         instrument.exchange,
-                        style: const TextStyle(
-                            color: AppColors.onSurfaceMuted, fontSize: 11),
+                        style: TextStyle(
+                            color: colors.onSurfaceMuted, fontSize: 11),
                       ),
                     ),
                   ],
@@ -229,8 +230,8 @@ class _InstrumentSearchScreenState extends State<InstrumentSearchScreen> {
                     instrument.name.isNotEmpty
                         ? instrument.name
                         : instrument.instrumentType,
-                    style: const TextStyle(
-                        color: AppColors.onSurfaceMuted, fontSize: 12),
+                    style: TextStyle(
+                        color: colors.onSurfaceMuted, fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

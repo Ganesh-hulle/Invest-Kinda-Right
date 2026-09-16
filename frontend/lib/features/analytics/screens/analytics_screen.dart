@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../shared/widgets/error_snackbar.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
@@ -38,10 +39,9 @@ class _AnalyticsView extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: const Text('Analytics'),
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? context.colors.surface,
         actions: [
           if (provider.selectedToken != null)
             IconButton(
@@ -55,7 +55,7 @@ class _AnalyticsView extends StatelessWidget {
         children: [
           _InstrumentSelector(provider: provider),
           _TimeframeSelector(provider: provider),
-          const Divider(height: 1, color: AppColors.divider),
+          Divider(height: 1, color: context.colors.divider),
           Expanded(child: _AnalyticsBody(provider: provider)),
         ],
       ),
@@ -89,16 +89,16 @@ class _InstrumentSelector extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
+          color: context.colors.surfaceVariant,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.divider),
+          border: Border.all(color: context.colors.divider),
         ),
         child: Row(
           children: [
             Icon(
               Icons.candlestick_chart_rounded,
               color:
-                  hasInstrument ? AppColors.primary : AppColors.onSurfaceMuted,
+                  hasInstrument ? AppColors.primary : context.colors.onSurfaceMuted,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -107,15 +107,15 @@ class _InstrumentSelector extends StatelessWidget {
                 hasInstrument ? provider.selectedSymbol! : 'Select Instrument',
                 style: TextStyle(
                   color: hasInstrument
-                      ? AppColors.onSurface
-                      : AppColors.onSurfaceMuted,
+                      ? context.colors.onSurface
+                      : context.colors.onSurfaceMuted,
                   fontSize: 15,
                   fontWeight: hasInstrument ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
-            const Icon(Icons.search_rounded,
-                color: AppColors.onSurfaceMuted, size: 20),
+            Icon(Icons.search_rounded,
+                color: context.colors.onSurfaceMuted, size: 20),
           ],
         ),
       ),
@@ -149,12 +149,12 @@ class _TimeframeSelector extends StatelessWidget {
               selected: selected,
               onSelected: (_) => provider.setTimeframe(tf),
               selectedColor: AppColors.primary.withAlpha(40),
-              backgroundColor: AppColors.surfaceVariant2,
+              backgroundColor: context.colors.surfaceVariant2,
               side: BorderSide(
-                color: selected ? AppColors.primary : AppColors.divider,
+                color: selected ? AppColors.primary : context.colors.divider,
               ),
               labelStyle: TextStyle(
-                color: selected ? AppColors.primary : AppColors.onSurfaceMuted,
+                color: selected ? AppColors.primary : context.colors.onSurfaceMuted,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 fontSize: 12,
               ),
@@ -198,27 +198,27 @@ class _EmptyState extends StatelessWidget {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: context.colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(Icons.auto_graph_rounded,
-                  size: 48, color: AppColors.onSurfaceMuted),
+              child: Icon(Icons.auto_graph_rounded,
+                  size: 48, color: context.colors.onSurfaceMuted),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No Instrument Selected',
               style: TextStyle(
-                color: AppColors.onSurface,
+                color: context.colors.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Tap "Select Instrument" above to view\ntechnical indicators and signals.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.onSurfaceMuted,
+                color: context.colors.onSurfaceMuted,
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -275,10 +275,10 @@ class _AnalyticsContent extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Price & Candles',
               style: TextStyle(
-                color: AppColors.onSurface,
+                color: context.colors.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -313,10 +313,10 @@ class _AnalyticsContent extends StatelessWidget {
           const SizedBox(height: 16),
         ],
         if (provider.indicators != null) ...[
-          const Text(
+          Text(
             'Technical Indicators',
             style: TextStyle(
-              color: AppColors.onSurface,
+              color: context.colors.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -346,14 +346,14 @@ class _SignalCard extends StatelessWidget {
         : isSell
             ? AppColors.sellGradient
             : LinearGradient(
-                colors: [AppColors.surfaceVariant2, AppColors.surfaceVariant],
+                colors: [context.colors.surfaceVariant2, context.colors.surfaceVariant],
               );
 
     final labelColor = isBuy
         ? AppColors.buy
         : isSell
             ? AppColors.sell
-            : AppColors.onSurfaceMuted;
+            : context.colors.onSurfaceMuted;
 
     final icon = isBuy
         ? Icons.trending_up_rounded
@@ -373,13 +373,13 @@ class _SignalCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.psychology_rounded,
-                  color: AppColors.onSurfaceMuted, size: 14),
+              Icon(Icons.psychology_rounded,
+                  color: context.colors.onSurfaceMuted, size: 14),
               const SizedBox(width: 6),
               Text(
                 signal?.strategy ?? 'EMA Crossover',
-                style: const TextStyle(
-                    color: AppColors.onSurfaceMuted, fontSize: 12),
+                style: TextStyle(
+                    color: context.colors.onSurfaceMuted, fontSize: 12),
               ),
             ],
           ),
@@ -410,8 +410,8 @@ class _SignalCard extends StatelessWidget {
                   if (signal != null)
                     Text(
                       '₹${signal!.price.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          color: AppColors.onSurfaceMuted, fontSize: 14),
+                      style: TextStyle(
+                          color: context.colors.onSurfaceMuted, fontSize: 14),
                     ),
                 ],
               ),
@@ -421,8 +421,8 @@ class _SignalCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               signal!.tradingsymbol,
-              style: const TextStyle(
-                  color: AppColors.onSurfaceMuted, fontSize: 12),
+              style: TextStyle(
+                  color: context.colors.onSurfaceMuted, fontSize: 12),
             ),
           ],
         ],
@@ -456,17 +456,17 @@ class _CandleChart extends StatelessWidget {
       height: 180,
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: context.colors.surfaceVariant,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 8, bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 8),
             child: Text(
               'Close Price',
-              style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12),
+              style: TextStyle(color: context.colors.onSurfaceMuted, fontSize: 12),
             ),
           ),
           Expanded(
@@ -587,9 +587,9 @@ class _IndicatorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: item.cardBackground ?? AppColors.surfaceVariant,
+        color: item.cardBackground ?? context.colors.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: context.colors.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -609,8 +609,8 @@ class _IndicatorCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   item.label,
-                  style: const TextStyle(
-                    color: AppColors.onSurfaceMuted,
+                  style: TextStyle(
+                    color: context.colors.onSurfaceMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -623,8 +623,8 @@ class _IndicatorCard extends StatelessWidget {
             item.value != null ? item.value!.toStringAsFixed(2) : '—',
             style: TextStyle(
               color: item.value != null
-                  ? AppColors.onSurface
-                  : AppColors.onSurfaceSubtle,
+                  ? context.colors.onSurface
+                  : context.colors.onSurfaceSubtle,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Standard IKR app bar with consistent styling.
 class IkrAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -29,7 +30,7 @@ class IkrAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       actions: actions,
       bottom: bottom,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.transparent,
     );
@@ -180,14 +181,14 @@ class ExchangeChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant2,
+        color: context.colors.surfaceVariant2,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: context.colors.divider),
       ),
       child: Text(
         exchange,
         style: TextStyle(
-          color: AppColors.onSurfaceMuted,
+          color: context.colors.onSurfaceMuted,
           fontSize: 10,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.3,

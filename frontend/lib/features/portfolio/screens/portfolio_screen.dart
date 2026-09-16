@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/pnl_chip.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../model/portfolio_models.dart';
@@ -62,11 +63,10 @@ class _PortfolioScreenState extends State<PortfolioScreen>
         final showBottomBar = kite.isConnected && !provider.isLoading && hasItems;
 
         return Scaffold(
-          backgroundColor: AppColors.surface,
           body: NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
               SliverAppBar(
-                backgroundColor: AppColors.surface,
+                backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? context.colors.surface,
                 title: const Text('Portfolio'),
                 pinned: true,
                 floating: true,
@@ -75,7 +75,7 @@ class _PortfolioScreenState extends State<PortfolioScreen>
                   controller: _tabController,
                   indicatorColor: AppColors.primary,
                   labelColor: AppColors.primary,
-                  unselectedLabelColor: AppColors.onSurfaceMuted,
+                  unselectedLabelColor: context.colors.onSurfaceMuted,
                   tabs: const [
                     Tab(text: 'Holdings'),
                     Tab(text: 'Net Positions'),
@@ -152,7 +152,7 @@ class _SummaryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.surfaceVariant,
+      color: context.colors.surfaceVariant,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -170,11 +170,11 @@ class _SummaryBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Total P&L',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.onSurfaceMuted,
+                    color: context.colors.onSurfaceMuted,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -203,15 +203,15 @@ class _SummaryItem extends StatelessWidget {
           Text(
             label,
             style:
-                const TextStyle(fontSize: 11, color: AppColors.onSurfaceMuted),
+                TextStyle(fontSize: 11, color: context.colors.onSurfaceMuted),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.onSurface,
+              color: context.colors.onSurface,
             ),
           ),
         ],
@@ -241,13 +241,13 @@ class _HoldingsList extends StatelessWidget {
 
     return RefreshIndicator(
       color: AppColors.primary,
-      backgroundColor: AppColors.surfaceVariant,
+      backgroundColor: context.colors.surfaceVariant,
       onRefresh: onRefresh,
       child: ListView.separated(
         padding: EdgeInsets.zero,
         itemCount: items.length,
         separatorBuilder: (_, __) =>
-            const Divider(height: 1, color: AppColors.divider),
+            Divider(height: 1, color: context.colors.divider),
         itemBuilder: (_, index) => _HoldingTile(item: items[index], fmt: fmt),
       ),
     );
@@ -269,7 +269,7 @@ class _HoldingTile extends StatelessWidget {
     final isPnlPositive = item.pnl >= 0;
     final isPnlZero = item.pnl.abs() < 0.001;
     final pnlColor = isPnlZero
-        ? AppColors.onSurfaceMuted
+        ? context.colors.onSurfaceMuted
         : (isPnlPositive ? AppColors.buy : AppColors.sell);
     final pnlSign = isPnlPositive ? '+' : '-';
     final pnlPctSign = isPnlPositive ? '+' : '';
@@ -290,10 +290,10 @@ class _HoldingTile extends StatelessWidget {
                   children: [
                     Text(
                       item.tradingsymbol,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        color: context.colors.onSurface,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -335,19 +335,19 @@ class _HoldingTile extends StatelessWidget {
               children: [
                 Text(
                   '${item.quantity} Qty. · Avg. ${fmt.format(item.averagePrice)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.onSurfaceMuted,
+                    color: context.colors.onSurfaceMuted,
                   ),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'LTP ',
                       style: TextStyle(
                         fontSize: 10,
-                        color: AppColors.onSurfaceMuted,
+                        color: context.colors.onSurfaceMuted,
                         fontWeight: FontWeight.w200,
                       ),
                     ),
@@ -404,13 +404,13 @@ class _PositionsList extends StatelessWidget {
 
     return RefreshIndicator(
       color: AppColors.primary,
-      backgroundColor: AppColors.surfaceVariant,
+      backgroundColor: context.colors.surfaceVariant,
       onRefresh: onRefresh,
       child: ListView.separated(
         padding: EdgeInsets.zero,
         itemCount: items.length,
         separatorBuilder: (_, __) =>
-            const Divider(height: 1, color: AppColors.divider),
+            Divider(height: 1, color: context.colors.divider),
         itemBuilder: (_, index) => _PositionTile(item: items[index], fmt: fmt),
       ),
     );
@@ -432,7 +432,7 @@ class _PositionTile extends StatelessWidget {
     final isPnlPositive = item.pnl >= 0;
     final isPnlZero = item.pnl.abs() < 0.001;
     final pnlColor = isPnlZero
-        ? AppColors.onSurfaceMuted
+        ? context.colors.onSurfaceMuted
         : (isPnlPositive ? AppColors.buy : AppColors.sell);
     final pnlSign = isPnlPositive ? '+' : '-';
     final pnlPctSign = isPnlPositive ? '+' : '';
@@ -453,10 +453,10 @@ class _PositionTile extends StatelessWidget {
                   children: [
                     Text(
                       item.tradingsymbol,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        color: context.colors.onSurface,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -466,14 +466,14 @@ class _PositionTile extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant2,
+                        color: context.colors.surfaceVariant2,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         item.product,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: AppColors.onSurfaceMuted,
+                          color: context.colors.onSurfaceMuted,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -515,19 +515,19 @@ class _PositionTile extends StatelessWidget {
               children: [
                 Text(
                   '${item.quantity} Qty. · Avg. ${fmt.format(item.averagePrice)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.onSurfaceMuted,
+                    color: context.colors.onSurfaceMuted,
                   ),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'LTP ',
                       style: TextStyle(
                         fontSize: 10,
-                        color: AppColors.onSurfaceMuted,
+                        color: context.colors.onSurfaceMuted,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -601,12 +601,12 @@ class _EmptyList extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.inbox_outlined, size: 48, color: AppColors.onSurfaceMuted),
+          Icon(Icons.inbox_outlined, size: 48, color: context.colors.onSurfaceMuted),
           const SizedBox(height: 12),
           Text(
             message,
             style:
-                const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 14),
+                TextStyle(color: context.colors.onSurfaceMuted, fontSize: 14),
           ),
         ],
       ),
@@ -635,19 +635,19 @@ class _EmptyKiteState extends StatelessWidget {
               child: const Icon(Icons.link_off, color: Colors.white, size: 36),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Zerodha Not Connected',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: context.colors.onSurface,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Connect your Zerodha account to view your holdings and positions.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.onSurfaceMuted),
+              style: TextStyle(fontSize: 14, color: context.colors.onSurfaceMuted),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -689,8 +689,8 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: AppColors.onSurfaceMuted, fontSize: 14),
+              style: TextStyle(
+                  color: context.colors.onSurfaceMuted, fontSize: 14),
             ),
             const SizedBox(height: 16),
             TextButton(
@@ -724,7 +724,7 @@ class _DayPnlBottomBar extends StatelessWidget {
     final isPositive = dayPnl >= 0;
     final isZero = dayPnl.abs() < 0.001;
     final color = isZero
-        ? AppColors.onSurface
+        ? context.colors.onSurface
         : (isPositive ? AppColors.buy : AppColors.sell);
     final sign = isPositive ? '+' : '-';
     final pctSign = isPositive ? '+' : '';
@@ -746,9 +746,9 @@ class _DayPnlBottomBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        border: const Border(
-          top: BorderSide(color: AppColors.divider, width: 1),
+        color: context.colors.surfaceVariant,
+        border: Border(
+          top: BorderSide(color: context.colors.divider, width: 1),
         ),
         boxShadow: [
           BoxShadow(
@@ -787,21 +787,21 @@ class _DayPnlBottomBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
+                      Text(
                         "Day's P&L",
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
+                          color: context.colors.onSurface,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         tabLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.onSurfaceMuted,
+                          color: context.colors.onSurfaceMuted,
                         ),
                       ),
                     ],

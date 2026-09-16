@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/pnl_chip.dart';
 import '../../orders/screens/place_order_sheet.dart';
 import '../model/portfolio_models.dart';
@@ -81,9 +82,9 @@ class PortfolioDetailSheet extends StatelessWidget {
     final isProfit = pnl >= 0;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceVariant,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: Column(
@@ -96,7 +97,7 @@ class PortfolioDetailSheet extends StatelessWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.divider,
+                color: context.colors.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -112,10 +113,10 @@ class PortfolioDetailSheet extends StatelessWidget {
                   children: [
                     Text(
                       tradingsymbol,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.onSurface,
+                        color: context.colors.onSurface,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -141,15 +142,15 @@ class PortfolioDetailSheet extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant2,
+                            color: context.colors.surfaceVariant2,
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: AppColors.divider),
+                            border: Border.all(color: context.colors.divider),
                           ),
                           child: Text(
                             product,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: AppColors.onSurfaceMuted,
+                              color: context.colors.onSurfaceMuted,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -160,14 +161,14 @@ class PortfolioDetailSheet extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
+                icon: Icon(Icons.close_rounded, color: context.colors.onSurfaceMuted),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
 
           const SizedBox(height: 20),
-          const Divider(height: 1, color: AppColors.divider),
+          Divider(height: 1, color: context.colors.divider),
           const SizedBox(height: 16),
 
           // Price & P&L Hero section
@@ -178,10 +179,10 @@ class PortfolioDetailSheet extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'LAST TRADED PRICE',
                     style: TextStyle(
-                      color: AppColors.onSurfaceMuted,
+                      color: context.colors.onSurfaceMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
@@ -190,10 +191,10 @@ class PortfolioDetailSheet extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '₹${fmt.format(lastPrice)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
+                      color: context.colors.onSurface,
                     ),
                   ),
                 ],
@@ -201,10 +202,10 @@ class PortfolioDetailSheet extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'TOTAL P&L',
                     style: TextStyle(
-                      color: AppColors.onSurfaceMuted,
+                      color: context.colors.onSurfaceMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
@@ -237,9 +238,9 @@ class PortfolioDetailSheet extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.colors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.divider),
+              border: Border.all(color: context.colors.divider),
             ),
             child: Column(
               children: [
@@ -350,19 +351,19 @@ class _DetailMetric extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppColors.onSurfaceMuted,
+              color: context.colors.onSurfaceMuted,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: context.colors.onSurface,
             ),
           ),
         ],

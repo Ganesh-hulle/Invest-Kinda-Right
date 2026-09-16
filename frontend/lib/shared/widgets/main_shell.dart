@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Bottom navigation shell wrapping all main tabs.
 class MainShell extends StatefulWidget {
@@ -53,9 +53,9 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            top: BorderSide(color: AppColors.divider, width: 1),
+            top: BorderSide(color: context.colors.divider, width: 1),
           ),
         ),
         child: BottomNavigationBar(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/websocket/market_ws_service.dart';
 import '../../kite/provider/kite_provider.dart';
 import '../provider/watchlist_provider.dart';
@@ -158,9 +159,9 @@ class _MarketFeedDiagnosticsSheetState
         : 'None received yet';
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceVariant,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
         top: false,
@@ -176,7 +177,7 @@ class _MarketFeedDiagnosticsSheetState
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.divider,
+                    color: context.colors.divider,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -189,10 +190,10 @@ class _MarketFeedDiagnosticsSheetState
                   const Icon(Icons.hub_rounded,
                       color: AppColors.primary, size: 22),
                   const SizedBox(width: 10),
-                  const Text(
+                  Text(
                     'Live Market Feed Status',
                     style: TextStyle(
-                      color: AppColors.onSurface,
+                      color: context.colors.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -210,7 +211,7 @@ class _MarketFeedDiagnosticsSheetState
                 ],
               ),
               const SizedBox(height: 16),
-              Divider(color: AppColors.divider.withAlpha(60)),
+              Divider(color: context.colors.divider),
               const SizedBox(height: 12),
 
               // Status rows
@@ -241,7 +242,7 @@ class _MarketFeedDiagnosticsSheetState
               _StatusRow(
                 title: 'Subscribed Instruments',
                 value: '${watchlist.allStreamingTokens.length} tokens',
-                color: AppColors.onSurface,
+                color: context.colors.onSurface,
                 subtitle: 'Watchlist items + NIFTY 50 & SENSEX',
               ),
               const SizedBox(height: 12),
@@ -249,7 +250,7 @@ class _MarketFeedDiagnosticsSheetState
               _StatusRow(
                 title: 'Last Tick Received',
                 value: lastTickStr,
-                color: AppColors.onSurface,
+                color: context.colors.onSurface,
                 subtitle: 'Real-time WebSocket heartbeat',
               ),
 
@@ -267,7 +268,7 @@ class _MarketFeedDiagnosticsSheetState
                       label: const Text('Reconnect Feed'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: AppColors.divider),
+                        side: BorderSide(color: context.colors.divider),
                       ),
                     ),
                   ),
@@ -316,7 +317,7 @@ class _StatusRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant2,
+        color: context.colors.surfaceVariant2,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -328,8 +329,8 @@ class _StatusRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: AppColors.onSurface,
+                  style: TextStyle(
+                    color: context.colors.onSurface,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -337,8 +338,8 @@ class _StatusRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: AppColors.onSurfaceMuted,
+                  style: TextStyle(
+                    color: context.colors.onSurfaceMuted,
                     fontSize: 11,
                   ),
                 ),

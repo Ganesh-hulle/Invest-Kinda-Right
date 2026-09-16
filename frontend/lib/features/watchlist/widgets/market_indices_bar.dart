@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../model/watchlist_models.dart';
 import '../provider/watchlist_provider.dart';
 import 'live_ticker_price.dart';
@@ -24,9 +25,9 @@ class MarketIndicesBar extends StatelessWidget {
           margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
+            color: context.colors.surfaceVariant,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.divider.withAlpha(80)),
+            border: Border.all(color: context.colors.divider),
           ),
           child: Row(
             children: [
@@ -42,7 +43,7 @@ class MarketIndicesBar extends StatelessWidget {
                 width: 1,
                 height: 38,
                 margin: const EdgeInsets.symmetric(horizontal: 10),
-                color: AppColors.divider.withAlpha(60),
+                color: context.colors.divider,
               ),
               // SENSEX
               Expanded(
@@ -96,8 +97,8 @@ class _IndexCell extends StatelessWidget {
                 Flexible(
                   child: Text(
                     item.tradingsymbol,
-                    style: const TextStyle(
-                      color: AppColors.onSurfaceMuted,
+                    style: TextStyle(
+                      color: context.colors.onSurfaceMuted,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.3,
@@ -109,7 +110,7 @@ class _IndexCell extends StatelessWidget {
                 Text(
                   item.exchange,
                   style: TextStyle(
-                    color: AppColors.onSurfaceMuted.withAlpha(140),
+                    color: context.colors.onSurfaceMuted.withAlpha(140),
                     fontSize: 9,
                     fontWeight: FontWeight.w500,
                   ),
@@ -122,8 +123,8 @@ class _IndexCell extends StatelessWidget {
               price: item.lastPrice,
               previousPrice: item.previousPrice,
               direction: item.priceDirection,
-              style: const TextStyle(
-                color: AppColors.onSurface,
+              style: TextStyle(
+                color: context.colors.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.2,
@@ -154,7 +155,7 @@ class _IndexCell extends StatelessWidget {
               Text(
                 'Awaiting feed',
                 style: TextStyle(
-                  color: AppColors.onSurfaceMuted.withAlpha(120),
+                  color: context.colors.onSurfaceMuted.withAlpha(120),
                   fontSize: 10,
                 ),
               ),

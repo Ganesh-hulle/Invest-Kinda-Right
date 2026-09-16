@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Shows an error snackbar using the shared style.
 void showErrorSnackbar(BuildContext context, String message) {
@@ -8,17 +9,17 @@ void showErrorSnackbar(BuildContext context, String message) {
     SnackBar(
       content: Row(
         children: [
-          Icon(Icons.error_outline_rounded, color: AppColors.error, size: 18),
+          const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: 13, color: context.colors.onSurface),
             ),
           ),
         ],
       ),
-      backgroundColor: AppColors.surfaceVariant2,
+      backgroundColor: context.colors.surfaceVariant2,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       margin: const EdgeInsets.all(12),
@@ -39,15 +40,15 @@ void showSuccessSnackbar(BuildContext context, String message) {
     SnackBar(
       content: Row(
         children: [
-          Icon(Icons.check_circle_outline_rounded,
+          const Icon(Icons.check_circle_outline_rounded,
               color: AppColors.buy, size: 18),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(message, style: const TextStyle(fontSize: 13)),
+            child: Text(message, style: TextStyle(fontSize: 13, color: context.colors.onSurface)),
           ),
         ],
       ),
-      backgroundColor: AppColors.surfaceVariant2,
+      backgroundColor: context.colors.surfaceVariant2,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       margin: const EdgeInsets.all(12),
@@ -63,12 +64,12 @@ void showInfoSnackbar(BuildContext context, String message) {
     SnackBar(
       content: Row(
         children: [
-          Icon(Icons.info_outline_rounded, color: AppColors.info, size: 18),
+          const Icon(Icons.info_outline_rounded, color: AppColors.info, size: 18),
           const SizedBox(width: 10),
-          Expanded(child: Text(message, style: const TextStyle(fontSize: 13))),
+          Expanded(child: Text(message, style: TextStyle(fontSize: 13, color: context.colors.onSurface))),
         ],
       ),
-      backgroundColor: AppColors.surfaceVariant2,
+      backgroundColor: context.colors.surfaceVariant2,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       margin: const EdgeInsets.all(12),

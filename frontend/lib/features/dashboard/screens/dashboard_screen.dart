@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/websocket/market_ws_service.dart';
@@ -61,7 +62,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: _onRefresh,
@@ -97,7 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final greeting = _getGreeting();
         final username = auth.username;
         return SliverAppBar(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? context.colors.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           floating: true,
@@ -126,16 +126,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Text(
                         '$greeting,',
-                        style: const TextStyle(
-                          color: AppColors.onSurfaceMuted,
+                        style: TextStyle(
+                          color: context.colors.onSurfaceMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
                       Text(
                         username,
-                        style: const TextStyle(
-                          color: AppColors.onSurface,
+                        style: TextStyle(
+                          color: context.colors.onSurface,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -167,9 +167,9 @@ class _KiteConnectionBanner extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: context.colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.divider),
+                border: Border.all(color: context.colors.divider),
               ),
               child: Row(
                 children: [
@@ -179,10 +179,10 @@ class _KiteConnectionBanner extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Zerodha: ${kite.profile?.userName ?? 'Connected'}${kite.profile?.userId != null ? ' (${kite.profile!.userId})' : ''}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
+                        color: context.colors.onSurface,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -219,11 +219,11 @@ class _KiteConnectionBanner extends StatelessWidget {
                 const Icon(Icons.link_off_rounded,
                     color: AppColors.primary, size: 22),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Connect your Zerodha account to enable live trading & portfolio sync.',
                     style: TextStyle(
-                        color: AppColors.onSurface, fontSize: 13, height: 1.5),
+                        color: context.colors.onSurface, fontSize: 13, height: 1.5),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -308,7 +308,7 @@ class _MarketStatusCardState extends State<_MarketStatusCard> {
           final shouldConnect = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              backgroundColor: AppColors.surfaceVariant,
+              backgroundColor: ctx.colors.surfaceVariant,
               title: const Text('Zerodha Disconnected'),
               content: const Text(
                 'Your Zerodha session is not connected or may have expired. Would you like to log in with Zerodha now?',
@@ -374,7 +374,7 @@ class _MarketStatusCardState extends State<_MarketStatusCard> {
             ? AppColors.buy
             : isConnecting
                 ? AppColors.warning
-                : AppColors.onSurfaceMuted;
+                : context.colors.onSurfaceMuted;
         final label = isConnected
             ? 'Live Feed Connected'
             : isConnecting
@@ -384,9 +384,9 @@ class _MarketStatusCardState extends State<_MarketStatusCard> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
+            color: context.colors.surfaceVariant,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.divider),
+            border: Border.all(color: context.colors.divider),
           ),
           child: Row(
             children: [
@@ -409,8 +409,8 @@ class _MarketStatusCardState extends State<_MarketStatusCard> {
               const SizedBox(width: 10),
               Text(
                 label,
-                style: const TextStyle(
-                    color: AppColors.onSurface,
+                style: TextStyle(
+                    color: context.colors.onSurface,
                     fontSize: 13,
                     fontWeight: FontWeight.w500),
               ),
@@ -473,8 +473,8 @@ class _MarketStatusCardState extends State<_MarketStatusCard> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.sync_rounded,
-                      size: 16, color: AppColors.onSurfaceMuted),
+                  icon: Icon(Icons.sync_rounded,
+                      size: 16, color: context.colors.onSurfaceMuted),
                   tooltip: 'Refresh Feed Quotes',
                   onPressed: _reconnectFeed,
                   visualDensity: VisualDensity.compact,
@@ -484,8 +484,8 @@ class _MarketStatusCardState extends State<_MarketStatusCard> {
                 const SizedBox(width: 8),
                 Text(
                   DateFormat('HH:mm').format(DateTime.now()),
-                  style: const TextStyle(
-                      color: AppColors.onSurfaceMuted, fontSize: 12),
+                  style: TextStyle(
+                      color: context.colors.onSurfaceMuted, fontSize: 12),
                 ),
               ],
             ],
@@ -511,9 +511,9 @@ class _PortfolioSummaryStrip extends StatelessWidget {
           return Row(
             children: List.generate(
               3,
-              (_) => Expanded(
+              (_) => const Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 4),
                   child: ShimmerCard(height: 76),
                 ),
               ),
@@ -563,21 +563,21 @@ class _StatTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
+          color: context.colors.surfaceVariant,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.divider),
+          border: Border.all(color: context.colors.divider),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style: const TextStyle(
-                    color: AppColors.onSurfaceMuted, fontSize: 11)),
+                style: TextStyle(
+                    color: context.colors.onSurfaceMuted, fontSize: 11)),
             const SizedBox(height: 6),
             Text(
               '$prefix$value',
               style: TextStyle(
-                color: valueColor ?? AppColors.onSurface,
+                color: valueColor ?? context.colors.onSurface,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -676,7 +676,7 @@ class _EmaSignalStripState extends State<_EmaSignalStrip> {
                   scrollDirection: Axis.horizontal,
                   itemCount: 4,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, __) => ShimmerCard(height: 40, width: 90),
+                  itemBuilder: (_, __) => const ShimmerCard(height: 40, width: 90),
                 )
               : ListView.separated(
                   scrollDirection: Axis.horizontal,
@@ -713,7 +713,7 @@ class _SignalChip extends StatelessWidget {
         ? AppColors.buy
         : isSell
             ? AppColors.sell
-            : AppColors.onSurfaceMuted;
+            : context.colors.onSurfaceMuted;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
@@ -727,8 +727,8 @@ class _SignalChip extends StatelessWidget {
         children: [
           Text(
             data.symbol,
-            style: const TextStyle(
-                color: AppColors.onSurface,
+            style: TextStyle(
+                color: context.colors.onSurface,
                 fontSize: 12,
                 fontWeight: FontWeight.w600),
           ),
@@ -767,24 +767,24 @@ class _RecentOrdersCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.divider),
+                  border: Border.all(color: context.colors.divider),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     'No recent orders',
                     style: TextStyle(
-                        color: AppColors.onSurfaceMuted, fontSize: 14),
+                        color: context.colors.onSurfaceMuted, fontSize: 14),
                   ),
                 ),
               )
             else
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.divider),
+                  border: Border.all(color: context.colors.divider),
                 ),
                 child: Column(
                   children: List.generate(recent.length, (i) {
@@ -819,8 +819,8 @@ class _RecentOrdersCard extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   order.tradingsymbol,
-                                  style: const TextStyle(
-                                    color: AppColors.onSurface,
+                                  style: TextStyle(
+                                    color: context.colors.onSurface,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
                                   ),
@@ -828,8 +828,8 @@ class _RecentOrdersCard extends StatelessWidget {
                               ),
                               Text(
                                 '₹${fmt.format(order.price)}',
-                                style: const TextStyle(
-                                  color: AppColors.onSurface,
+                                style: TextStyle(
+                                  color: context.colors.onSurface,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),
@@ -837,8 +837,8 @@ class _RecentOrdersCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               Text(
                                 timeFmt.format(order.createdAt),
-                                style: const TextStyle(
-                                    color: AppColors.onSurfaceMuted,
+                                style: TextStyle(
+                                    color: context.colors.onSurfaceMuted,
                                     fontSize: 11),
                               ),
                             ],
@@ -847,7 +847,7 @@ class _RecentOrdersCard extends StatelessWidget {
                         if (i < recent.length - 1)
                           Divider(
                               height: 1,
-                              color: AppColors.divider,
+                              color: context.colors.divider,
                               indent: 14,
                               endIndent: 14),
                       ],
@@ -883,8 +883,8 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: AppColors.onSurface,
+          style: TextStyle(
+            color: context.colors.onSurface,
             fontSize: 15,
             fontWeight: FontWeight.w700,
           ),
@@ -893,8 +893,8 @@ class _SectionHeader extends StatelessWidget {
         if (onRefresh != null)
           GestureDetector(
             onTap: onRefresh,
-            child: const Icon(Icons.refresh_rounded,
-                color: AppColors.onSurfaceMuted, size: 18),
+            child: Icon(Icons.refresh_rounded,
+                color: context.colors.onSurfaceMuted, size: 18),
           ),
         if (onAction != null)
           TextButton(

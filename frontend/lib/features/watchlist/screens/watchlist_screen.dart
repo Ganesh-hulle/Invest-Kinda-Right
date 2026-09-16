@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../../../shared/widgets/error_snackbar.dart';
 import '../model/watchlist_models.dart';
@@ -54,12 +55,12 @@ class _WatchlistScreenState extends State<WatchlistScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceVariant,
-        title: const Text('Remove from Watchlist',
-            style: TextStyle(color: AppColors.onSurface)),
+        backgroundColor: ctx.colors.surfaceVariant,
+        title: Text('Remove from Watchlist',
+            style: TextStyle(color: ctx.colors.onSurface)),
         content: Text(
           'Remove ${item.tradingsymbol} from your watchlist?',
-          style: const TextStyle(color: AppColors.onSurfaceMuted),
+          style: TextStyle(color: ctx.colors.onSurfaceMuted),
         ),
         actions: [
           TextButton(
@@ -97,9 +98,9 @@ class _WatchlistScreenState extends State<WatchlistScreen>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<WatchlistProvider>();
+    final colors = context.colors;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,9 +109,9 @@ class _WatchlistScreenState extends State<WatchlistScreen>
             const Text('Watchlist'),
             Text(
               '${provider.items.length} / 50 items',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppColors.onSurfaceMuted,
+                color: colors.onSurfaceMuted,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -181,12 +182,12 @@ class _WatchlistScreenState extends State<WatchlistScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.filter_list_off_rounded,
-                          size: 48, color: AppColors.onSurfaceMuted.withAlpha(120)),
+                          size: 48, color: colors.onSurfaceMuted.withAlpha(120)),
                       const SizedBox(height: 12),
-                      const Text(
+                      Text(
                         'No matching instruments found',
                         style: TextStyle(
-                          color: AppColors.onSurfaceMuted,
+                          color: colors.onSurfaceMuted,
                           fontSize: 14,
                         ),
                       ),
@@ -226,8 +227,8 @@ class _WatchlistScreenState extends State<WatchlistScreen>
                             onLongPress: () => _confirmDelete(context, item),
                             onDelete: () => _confirmDelete(context, item),
                           ),
-                          const Divider(
-                              height: 1, color: AppColors.divider, indent: 16),
+                          Divider(
+                              height: 1, color: colors.divider, indent: 16),
                         ],
                       ),
                     );
@@ -261,6 +262,7 @@ class _WatchlistRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0.00');
+    final colors = context.colors;
 
     return InkWell(
       onTap: onTap,
@@ -276,8 +278,8 @@ class _WatchlistRow extends StatelessWidget {
                 children: [
                   Text(
                     item.tradingsymbol,
-                    style: const TextStyle(
-                      color: AppColors.onSurface,
+                    style: TextStyle(
+                      color: colors.onSurface,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
@@ -288,13 +290,13 @@ class _WatchlistRow extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant2,
+                        color: colors.surfaceVariant2,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         item.exchange,
-                        style: const TextStyle(
-                            color: AppColors.onSurfaceMuted, fontSize: 10),
+                        style: TextStyle(
+                            color: colors.onSurfaceMuted, fontSize: 10),
                       ),
                     ),
                 ],
@@ -314,10 +316,10 @@ class _WatchlistRow extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     '₹ --',
                     style: TextStyle(
-                      color: AppColors.onSurfaceMuted,
+                      color: colors.onSurfaceMuted,
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                     ),
@@ -327,14 +329,14 @@ class _WatchlistRow extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant2,
+                      color: colors.surfaceVariant2,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Awaiting Feed',
                       style: TextStyle(
                         fontSize: 10,
-                        color: AppColors.onSurfaceMuted,
+                        color: colors.onSurfaceMuted,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -349,8 +351,8 @@ class _WatchlistRow extends StatelessWidget {
                     price: item.lastPrice,
                     previousPrice: item.previousPrice,
                     direction: item.priceDirection,
-                    style: const TextStyle(
-                      color: AppColors.onSurface,
+                    style: TextStyle(
+                      color: colors.onSurface,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                       letterSpacing: -0.2,
@@ -388,8 +390,8 @@ class _WatchlistRow extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                icon: const Icon(Icons.close_rounded,
-                    size: 16, color: AppColors.onSurfaceMuted),
+                icon: Icon(Icons.close_rounded,
+                    size: 16, color: colors.onSurfaceMuted),
                 tooltip: 'Remove from Watchlist',
                 onPressed: onDelete,
               ),
@@ -469,6 +471,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final color = activeColor ?? AppColors.primary;
     return InkWell(
       onTap: onTap,
@@ -477,10 +480,10 @@ class _Chip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color.withAlpha(25) : AppColors.surfaceVariant,
+          color: isSelected ? color.withAlpha(25) : colors.surfaceVariant,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : AppColors.divider.withAlpha(60),
+            color: isSelected ? color : colors.divider,
             width: 1,
           ),
         ),
@@ -491,7 +494,7 @@ class _Chip extends StatelessWidget {
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             color: isSelected
                 ? (activeColor ?? AppColors.primary)
-                : AppColors.onSurfaceMuted,
+                : colors.onSurfaceMuted,
           ),
         ),
       ),
@@ -505,28 +508,29 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.star_border_rounded,
-                size: 72, color: AppColors.onSurfaceMuted),
+            Icon(Icons.star_border_rounded,
+                size: 72, color: colors.onSurfaceMuted),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Your watchlist is empty',
               style: TextStyle(
-                color: AppColors.onSurface,
+                color: colors.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Add instruments to track prices\nand get real-time signals',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.onSurfaceMuted, height: 1.6),
+              style: TextStyle(color: colors.onSurfaceMuted, height: 1.6),
             ),
             const SizedBox(height: 28),
             ElevatedButton.icon(

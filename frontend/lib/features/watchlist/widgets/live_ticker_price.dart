@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../model/watchlist_models.dart';
 
 /// Zerodha-style live price ticker with smooth green/red flash animation
@@ -79,9 +80,10 @@ class _LiveTickerPriceState extends State<LiveTickerPrice>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final baseStyle = widget.style ??
-        const TextStyle(
-          color: AppColors.onSurface,
+        TextStyle(
+          color: colors.onSurface,
           fontWeight: FontWeight.w700,
           fontSize: 15,
         );
@@ -89,7 +91,7 @@ class _LiveTickerPriceState extends State<LiveTickerPrice>
     if (widget.price <= 0) {
       return Text(
         '₹ --',
-        style: baseStyle.copyWith(color: AppColors.onSurfaceMuted),
+        style: baseStyle.copyWith(color: colors.onSurfaceMuted),
       );
     }
 
@@ -108,8 +110,8 @@ class _LiveTickerPriceState extends State<LiveTickerPrice>
 
         // Price text color flashes green/red then blends back to normal
         final textColor = isAnimating
-            ? Color.lerp(_flashColor, baseStyle.color ?? AppColors.onSurface, progress)
-            : baseStyle.color ?? AppColors.onSurface;
+            ? Color.lerp(_flashColor, baseStyle.color ?? colors.onSurface, progress)
+            : baseStyle.color ?? colors.onSurface;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),

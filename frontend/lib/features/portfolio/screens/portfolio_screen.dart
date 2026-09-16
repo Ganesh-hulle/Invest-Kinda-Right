@@ -10,6 +10,7 @@ import '../../../shared/widgets/shimmer_loader.dart';
 import '../model/portfolio_models.dart';
 import '../provider/portfolio_provider.dart';
 import '../widgets/portfolio_detail_sheet.dart';
+import '../widgets/pnl_impact_drawer.dart';
 import '../../kite/provider/kite_provider.dart';
 import '../../watchlist/widgets/live_ticker_price.dart';
 
@@ -760,88 +761,121 @@ class _DayPnlBottomBar extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => PnlImpactDrawer.show(
+              context,
+              initialScopeTab: activeTab,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color.withAlpha(25),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      isPositive
-                          ? Icons.trending_up_rounded
-                          : Icons.trending_down_rounded,
-                      color: color,
-                      size: 20,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: color.withAlpha(25),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          isPositive
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
+                          color: color,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "Day's P&L",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.colors.onSurface,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.keyboard_arrow_up_rounded,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                tabLabel,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: context.colors.onSurfaceMuted,
+                                ),
+                              ),
+                              const Text(
+                                ' · Impact Analysis',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Day's P&L",
+                        isZero
+                            ? '₹0.00'
+                            : '$sign${fmt.format(dayPnl.abs())}',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: context.colors.onSurface,
+                          color: color,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        tabLabel,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: context.colors.onSurfaceMuted,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: color.withAlpha(20),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '$pctSign${dayPnlPct.toStringAsFixed(2)}%',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    isZero
-                        ? '₹0.00'
-                        : '$sign${fmt.format(dayPnl.abs())}',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: color,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: color.withAlpha(20),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '$pctSign${dayPnlPct.toStringAsFixed(2)}%',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

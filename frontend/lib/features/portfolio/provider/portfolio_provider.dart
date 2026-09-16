@@ -178,7 +178,148 @@ class PortfolioProvider extends ChangeNotifier {
     }
   }
 
+  /// Aggregated real-time Day P&L impact summary for a tab or combined portfolio.
+  /// tabIndex: 0 = Holdings, 1 = Net Positions, 2 = Day Positions, 3/null = All Combined.
+  PortfolioDayImpactSummary getImpactSummary({int? tabIndex}) {
+    final rawItems = <InstrumentImpact>[];
+
+    void addHoldings() {
+      for (final h in _portfolio.holdings) {
+        final dayChange = h.dayChange != 0
+            ? h.dayChange
+            : (h.closePrice > 0 ? (h.lastPrice - h.closePrice) : 0.0);
+        final dayPnl = dayChange * h.quantity;
+        rawItems.add(InstrumentImpact(
+          tradingsymbol: h.tradingsymbol,
+          exchange: h.exchange,
+          product: 'CNC',
+          quantity: h.quantity,
+          averagePrice: h.averagePrice,
+          lastPrice: h.lastPrice,
+          dayPnl: dayPnl,
+          dayChangePercentage: h.dayChangePercentage,
+          instrumentToken: h.instrumentToken,
+          originalHolding: h,
+        ));
+      }
+    }
+
+    void addNetPositions() {
+      for (final p in _portfolio.netPositions) {
+        rawItems.add(InstrumentImpact(
+          tradingsymbol: p.tradingsymbol,
+          exchange: p.exchange,
+          product: p.product.isNotEmpty ? p.product : 'MIS',
+          quantity: p.quantity,
+          averagePrice: p.averagePrice,
+          lastPrice: p.lastPrice,
+          dayPnl: p.pnl,
+          dayChangePercentage: p.dayChangePercentage,
+          instrumentToken: p.instrumentToken,
+          originalPosition: p,
+        ));
+      }
+    }
+
+    void addDayPositions() {
+      for (final p in _portfolio.dayPositions) {
+        rawItems.add(InstrumentImpact(
+          tradingsymbol: p.tradingsymbol,
+          exchange: p.exchange,
+          product: p.product.isNotEmpty ? p.product : 'MIS',
+          quantity: p.quantity,
+          averagePrice: p.averagePrice,
+          lastPrice: p.lastPrice,
+          dayPnl: p.pnl,
+          dayChangePercentage: p.dayChangePercentage,
+          instrumentToken: p.instrumentToken,
+          originalPosition: p,
+        ));
+      }
+    }
+
+    if (tabIndex == 0) {
+      addHoldings();
+    } else if (tabIndex == 1) {
+      addNetPositions();
+    } else if (tabIndex == 2) {
+      addDayPositions();
+    } else {
+      // Combined: Holdings + Day Positions (or Net Positions if Day Positions is empty)
+      addHoldings();
+      if (_portfolio.dayPositions.isNotEmpty) {
+        addDayPositions();
+      } else {
+        addNetPositions();
+      }
+    }
+
+    double totalGrossGains = 0.0;
+    double totalGrossLosses = 0.0;
+    double netDayPnl = 0.0;
+
+    for (final item in rawItems) {
+      netDayPnl += item.dayPnl;
+      if (item.dayPnl > 0) {
+        totalGrossGains += item.dayPnl;
+      } else if (item.dayPnl < 0) {
+        totalGrossLosses += item.dayPnl.abs();
+      }
+    }
+
+    // Determine max absolute impact to normalize relative ratio
+    double maxAbs = 0.0;
+    for (final item in rawItems) {
+      if (item.absoluteImpact > maxAbs) {
+        maxAbs = item.absoluteImpact;
+      }
+    }
+
+    final enriched = rawItems.map((item) {
+      double contribPct = 0.0;
+      if (item.dayPnl > 0 && totalGrossGains > 0) {
+        contribPct = (item.dayPnl / totalGrossGains) * 100.0;
+      } else if (item.dayPnl < 0 && totalGrossLosses > 0) {
+        contribPct = (item.dayPnl.abs() / totalGrossLosses) * 100.0;
+      }
+
+      final ratio =
+          maxAbs > 0 ? (item.absoluteImpact / maxAbs).clamp(0.0, 1.0) : 0.0;
+
+      return item.copyWith(
+        contributionPercentage: contribPct,
+        relativeRatio: ratio,
+      );
+    }).toList();
+
+    // Sort descending by absolute impact so the most impactful movers surface first
+    enriched.sort((a, b) => b.absoluteImpact.compareTo(a.absoluteImpact));
+
+    InstrumentImpact? topGainer;
+    InstrumentImpact? topDragger;
+
+    for (final item in enriched) {
+      if (topGainer == null && item.dayPnl > 0) {
+        topGainer = item;
+      }
+      if (topDragger == null && item.dayPnl < 0) {
+        topDragger = item;
+      }
+      if (topGainer != null && topDragger != null) break;
+    }
+
+    return PortfolioDayImpactSummary(
+      netDayPnl: netDayPnl,
+      totalGrossGains: totalGrossGains,
+      totalGrossLosses: totalGrossLosses,
+      items: enriched,
+      topGainer: topGainer,
+      topDragger: topDragger,
+    );
+  }
+
   // ── Actions ──────────────────────────────────────────────────────────────
+
 
   /// Fetches the full portfolio from the API and connects live market streaming.
   Future<void> load() async {

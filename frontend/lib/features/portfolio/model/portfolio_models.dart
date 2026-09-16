@@ -268,3 +268,105 @@ class PortfolioResponse {
     );
   }
 }
+
+/// Represents an instrument's Day P&L contribution and visual impact metrics.
+class InstrumentImpact {
+  final String tradingsymbol;
+  final String exchange;
+  final String product;
+  final int quantity;
+  final double averagePrice;
+  final double lastPrice;
+  final double dayPnl;
+  final double dayChangePercentage;
+  final int? instrumentToken;
+  final double contributionPercentage; // % of total gross gains or total gross losses
+  final double relativeRatio; // 0.0 to 1.0 against the maximum absolute impact in view
+  final HoldingItem? originalHolding;
+  final PositionItem? originalPosition;
+
+  const InstrumentImpact({
+    required this.tradingsymbol,
+    required this.exchange,
+    required this.product,
+    required this.quantity,
+    required this.averagePrice,
+    required this.lastPrice,
+    required this.dayPnl,
+    required this.dayChangePercentage,
+    this.instrumentToken,
+    this.contributionPercentage = 0.0,
+    this.relativeRatio = 0.0,
+    this.originalHolding,
+    this.originalPosition,
+  });
+
+  bool get isPositive => dayPnl >= 0;
+  bool get isZero => dayPnl.abs() < 0.01;
+  double get absoluteImpact => dayPnl.abs();
+
+  InstrumentImpact copyWith({
+    String? tradingsymbol,
+    String? exchange,
+    String? product,
+    int? quantity,
+    double? averagePrice,
+    double? lastPrice,
+    double? dayPnl,
+    double? dayChangePercentage,
+    int? instrumentToken,
+    double? contributionPercentage,
+    double? relativeRatio,
+    HoldingItem? originalHolding,
+    PositionItem? originalPosition,
+  }) {
+    return InstrumentImpact(
+      tradingsymbol: tradingsymbol ?? this.tradingsymbol,
+      exchange: exchange ?? this.exchange,
+      product: product ?? this.product,
+      quantity: quantity ?? this.quantity,
+      averagePrice: averagePrice ?? this.averagePrice,
+      lastPrice: lastPrice ?? this.lastPrice,
+      dayPnl: dayPnl ?? this.dayPnl,
+      dayChangePercentage: dayChangePercentage ?? this.dayChangePercentage,
+      instrumentToken: instrumentToken ?? this.instrumentToken,
+      contributionPercentage:
+          contributionPercentage ?? this.contributionPercentage,
+      relativeRatio: relativeRatio ?? this.relativeRatio,
+      originalHolding: originalHolding ?? this.originalHolding,
+      originalPosition: originalPosition ?? this.originalPosition,
+    );
+  }
+}
+
+/// Aggregated macro attribution summary for a portfolio segment or combined portfolio.
+class PortfolioDayImpactSummary {
+  final double netDayPnl;
+  final double totalGrossGains;
+  final double totalGrossLosses;
+  final List<InstrumentImpact> items;
+  final InstrumentImpact? topGainer;
+  final InstrumentImpact? topDragger;
+
+  const PortfolioDayImpactSummary({
+    required this.netDayPnl,
+    required this.totalGrossGains,
+    required this.totalGrossLosses,
+    required this.items,
+    this.topGainer,
+    this.topDragger,
+  });
+
+  /// Split-pool ratio for gross profit vs gross loss in the range [0.0, 1.0].
+  /// E.g. 0.7 means 70% of total absolute movement was gains.
+  double get gainRatio {
+    final totalVol = totalGrossGains + totalGrossLosses;
+    return totalVol > 0 ? (totalGrossGains / totalVol) : 0.5;
+  }
+
+  double get lossRatio {
+    final totalVol = totalGrossGains + totalGrossLosses;
+    return totalVol > 0 ? (totalGrossLosses / totalVol) : 0.5;
+  }
+}
+
